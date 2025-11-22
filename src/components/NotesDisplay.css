@@ -1,0 +1,46 @@
+.notes-display {
+  flex: 1;
+  background-color: #2d2d2d;
+  border-radius: 10px;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.notes-display h2 {
+  color: #61dafb;
+  margin-bottom: 15px;
+}
+
+.notes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.note {
+  background-color: #61dafb;
+  color: #1a1a1a;
+  padding: 15px 20px;
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  animation: noteAppear 0.3s ease-out;
+}
+
+.empty-message {
+  color: #888;
+  font-style: italic;
+}
+
+@keyframes noteAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
