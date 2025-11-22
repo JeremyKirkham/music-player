@@ -19,7 +19,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
 
   // Initialize audio context
   useEffect(() => {
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)()
+    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
 
     return () => {
       if (audioContextRef.current) {

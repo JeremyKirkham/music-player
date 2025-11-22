@@ -1,0 +1,152 @@
+.musical-staff-container {
+  position: relative;
+  background-color: #2d2d2d;
+  border-radius: 10px;
+  padding: 30px 20px;
+  min-height: 200px;
+  overflow-x: auto;
+}
+
+.time-signature-display {
+  position: absolute;
+  left: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #61dafb;
+  z-index: 2;
+}
+
+.time-sig-top,
+.time-sig-bottom {
+  line-height: 1;
+  height: 20px;
+}
+
+.staff-wrapper {
+  position: relative;
+  margin-left: 120px;
+  min-height: 150px;
+  padding: 20px 0;
+}
+
+.staff-lines {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0;
+  right: 0;
+  height: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.staff-line {
+  width: 100%;
+  height: 2px;
+  background-color: #61dafb;
+  opacity: 0.6;
+}
+
+.treble-clef {
+  position: absolute;
+  left: -100px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 5rem;
+  color: #61dafb;
+  z-index: 2;
+}
+
+.measures-container {
+  position: relative;
+  display: flex;
+  gap: 40px;
+  padding: 0 20px;
+  min-height: 120px;
+}
+
+.measure {
+  position: relative;
+  padding: 0 10px;
+  min-width: 150px;
+  height: 120px;
+}
+
+.note-wrapper {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translateY(50%);
+}
+
+.accidental {
+  font-size: 1.2rem;
+  color: #61dafb;
+  margin-right: 2px;
+}
+
+.note-head {
+  font-size: 2rem;
+  color: #61dafb;
+  line-height: 1;
+}
+
+.note-stem {
+  display: block;
+  width: 2px;
+  height: 30px;
+  background-color: #61dafb;
+  position: absolute;
+  right: -2px;
+  bottom: 10px;
+}
+
+.note-label-staff {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.bar-line {
+  width: 2px;
+  height: 100px;
+  background-color: #61dafb;
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.bar-line.final-bar {
+  position: relative;
+  right: auto;
+  margin-left: 10px;
+}
+
+.bar-line.final-bar::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 100px;
+  background-color: #61dafb;
+  left: 6px;
+  top: 0;
+}
+
+.empty-staff-message {
+  text-align: center;
+  color: #888;
+  font-style: italic;
+  padding: 40px 0;
+}

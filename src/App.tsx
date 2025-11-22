@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import NotesDisplay from './components/NotesDisplay'
+import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import './App.css'
 
@@ -10,6 +10,7 @@ interface PlayedNote {
 
 function App() {
   const [playedNotes, setPlayedNotes] = useState<PlayedNote[]>([])
+  const [timeSignature, setTimeSignature] = useState('4/4')
 
   const addNote = (note: string) => {
     setPlayedNotes(prev => [...prev, { note, id: Date.now() }])
@@ -23,9 +24,27 @@ function App() {
     <div className="app">
       <div className="header">
         <h1>Music Player</h1>
-        <button onClick={clearNotes} className="clear-btn">Clear Notes</button>
+        <div className="header-controls">
+          <div className="time-signature-selector">
+            <label htmlFor="time-signature">Time Signature: </label>
+            <select
+              id="time-signature"
+              value={timeSignature}
+              onChange={(e) => setTimeSignature(e.target.value)}
+              className="time-sig-dropdown"
+            >
+              <option value="2/4">2/4</option>
+              <option value="3/4">3/4</option>
+              <option value="4/4">4/4</option>
+              <option value="6/8">6/8</option>
+              <option value="5/4">5/4</option>
+              <option value="7/8">7/8</option>
+            </select>
+          </div>
+          <button onClick={clearNotes} className="clear-btn">Clear Notes</button>
+        </div>
       </div>
-      <NotesDisplay notes={playedNotes} />
+      <MusicalStaff notes={playedNotes} timeSignature={timeSignature} />
       <Keyboard onNotePlay={addNote} />
     </div>
   )
