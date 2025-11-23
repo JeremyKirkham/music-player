@@ -120,3 +120,14 @@
   font-style: italic;
   padding: 40px 0;
 }
+
+.playback-line {
+  position: absolute;
+  top: 60px;
+  width: 3px;
+  height: 80px;
+  background-color: #ff4444;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+}

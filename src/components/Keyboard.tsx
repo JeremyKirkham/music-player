@@ -10,9 +10,10 @@ interface Note {
 
 interface KeyboardProps {
   onNotePlay: (note: string) => void
+  activeNotes?: Set<string>
 }
 
-const Keyboard = ({ onNotePlay }: KeyboardProps) => {
+const Keyboard = ({ onNotePlay, activeNotes = new Set() }: KeyboardProps) => {
   const audioContextRef = useRef<AudioContext | null>(null)
   const keyboardRef = useRef<HTMLDivElement>(null)
   const onNotePlayRef = useRef(onNotePlay)
@@ -190,7 +191,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
           <button
             key={note.name}
             data-key={note.key}
-            className="piano-key white"
+            className={`piano-key white ${activeNotes.has(note.name) ? 'active' : ''}`}
             onClick={() => playNote(note.frequency, note.name)}
           >
             <span className="note-name">{note.name}</span>
@@ -202,7 +203,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
           <button
             key={note.name}
             data-key={note.key}
-            className="piano-key black"
+            className={`piano-key black ${activeNotes.has(note.name) ? 'active' : ''}`}
             style={{ left: `${getBlackKeyPosition(note.name)}px` }}
             onClick={() => playNote(note.frequency, note.name)}
           >

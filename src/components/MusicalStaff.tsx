@@ -6,6 +6,7 @@ import NoteComponent from './Note'
 
 interface MusicalStaffProps {
   musicScore: MusicScore
+  activeEventIds?: Set<string>
 }
 
 // Staff positioning constants (in pixels from bottom of measure)
@@ -56,8 +57,11 @@ const NOTE_POSITION_MAP: { [key: string]: number } = {
   'C7': 320,
 } as const
 
-const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
+const MusicalStaff = ({ musicScore, activeEventIds = new Set() }: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
+
+  const PIXELS_PER_BEAT = 50
+  const MEASURE_GAP = 40
 
   // Get note position from the comprehensive map
   const getNotePosition = (note: Note): number => {
@@ -65,6 +69,43 @@ const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
     const baseNoteName = noteStr.replace(/#|b/g, '')
     return NOTE_POSITION_MAP[baseNoteName] || STAFF_POSITIONS.BASE_OFFSET
   }
+
+  // Auto-scroll to keep active note in view
+  useEffect(() => {
+    if (activeEventIds.size === 0 || !staffContainerRef.current) return
+
+    // Find the first active event
+    const activeEventId = Array.from(activeEventIds)[0]
+    const activeEvent = musicScore.events.find(e => e.id === activeEventId)
+
+    if (!activeEvent) return
+
+    // Calculate the horizontal position of the active note
+    const measureWidth = 50 * musicScore.timeSignature.numerator + 40
+    const measureIndex = activeEvent.position.measureIndex
+    const beatPosition = activeEvent.position.beatPosition
+
+    // Calculate absolute position: measure offset + beat offset + left padding
+    const absoluteX = (measureWidth + MEASURE_GAP) * measureIndex + beatPosition * PIXELS_PER_BEAT + 10
+
+    // Get the container's scroll position and dimensions
+    const container = staffContainerRef.current
+    const containerWidth = container.clientWidth
+    const scrollLeft = container.scrollLeft
+
+    // Calculate if we need to scroll
+    const padding = 100 // Keep some padding from edges
+    const leftEdge = scrollLeft + padding
+    const rightEdge = scrollLeft + containerWidth - padding
+
+    if (absoluteX < leftEdge) {
+      // Note is off the left edge, scroll left
+      container.scrollTo({ left: absoluteX - padding, behavior: 'smooth' })
+    } else if (absoluteX > rightEdge) {
+      // Note is off the right edge, scroll right
+      container.scrollTo({ left: absoluteX - containerWidth + padding, behavior: 'smooth' })
+    }
+  }, [activeEventIds, musicScore.events, musicScore.timeSignature.numerator, PIXELS_PER_BEAT, MEASURE_GAP])
 
   // Group events into measures
   const measures = useMemo(() => {
@@ -120,8 +161,9 @@ const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
               className="measure"
               style={{ minWidth: `${measure.events.length * 50 + 40}px` }}
             >
-              {measure.events.map((event, eventIndex) => {
-                const leftPosition = eventIndex * 50 + 10
+              {measure.events.map((event) => {
+                // Position notes based on their beat position within the measure
+                const leftPosition = event.position.beatPosition * PIXELS_PER_BEAT + 10
 
                 if (event.type === 'rest') {
                   // Render rest
@@ -151,6 +193,7 @@ const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
                     bottomPx={bottomPx}
                     leftPosition={leftPosition}
                     getNotePosition={getNotePosition}
+                    isActive={activeEventIds.has(event.id)}
                   />
                 )
               })}

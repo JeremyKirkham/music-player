@@ -60,3 +60,19 @@
   bottom: auto;
   top: -40px;
 }
+
+/* Active state during playback */
+.note-wrapper.active .note-head {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 8px #ff6b6b);
+}
+
+.note-wrapper.active .note-stem {
+  background-color: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}
+
+.note-wrapper.active .accidental {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import DebugModal from './components/DebugModal'
@@ -14,7 +14,11 @@ import {
   recalculateScoreForTimeSignature,
 } from './utils/musicUtilities'
 import { calculateScoreBeamGroups } from './utils/beamCalculation'
-
+import {
+  scheduleEvents,
+  getNoteFrequency,
+  playNoteSound,
+} from './utils/playbackUtilities'
 function App() {
   const [musicScore, setMusicScore] = useState<MusicScore>(() =>
     createEmptyScore({ numerator: 4, denominator: 4 })
@@ -22,6 +26,120 @@ function App() {
   const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
   const [currentClef, setCurrentClef] = useState<'treble' | 'bass'>('treble')
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
+  const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set())
+
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const scheduledTimeoutsRef = useRef<number[]>([])
+
+  // Initialize audio context
+  useEffect(() => {
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    audioContextRef.current = new (AudioContextClass || AudioContext)()
+
+    return () => {
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
+    }
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      scheduledTimeoutsRef.current.forEach(clearTimeout)
+      scheduledTimeoutsRef.current = []
+    }
+  }, [])
+
+  // Play/Stop functionality
+  const togglePlayback = () => {
+    if (isPlaying) {
+      stopPlayback()
+    } else {
+      startPlayback()
+    }
+  }
+
+  const startPlayback = () => {
+    if (musicScore.events.length === 0) return
+
+    // Clear any existing timeouts
+    scheduledTimeoutsRef.current.forEach(clearTimeout)
+    scheduledTimeoutsRef.current = []
+
+    setIsPlaying(true)
+
+    // Schedule all notes
+    const scheduledNotes = scheduleEvents(musicScore.events, musicScore.timeSignature.numerator)
+
+    // Calculate total duration (end time of the last note)
+    let totalDuration = 0
+    if (scheduledNotes.length > 0) {
+      const lastNote = scheduledNotes[scheduledNotes.length - 1]
+      totalDuration = lastNote.startTime + lastNote.duration
+    }
+
+    // Play each note at its scheduled time
+    scheduledNotes.forEach(({ event, startTime, duration }) => {
+      if (event.type === 'note' && event.notes && audioContextRef.current) {
+        const notes = event.notes
+
+        const timeoutId = window.setTimeout(() => {
+          // Highlight the event being played
+          setActiveEventIds(prev => new Set([...prev, event.id]))
+
+          // Highlight keyboard keys for the notes being played
+          const noteStrings = notes.map(n => `${n.pitch}${n.accidental === 'sharp' ? '#' : n.accidental === 'flat' ? 'b' : ''}${n.octave}`)
+          setActiveNotes(prev => new Set([...prev, ...noteStrings]))
+
+          // Play sounds
+          notes.forEach(note => {
+            const frequency = getNoteFrequency(note)
+            if (audioContextRef.current) {
+              playNoteSound(audioContextRef.current, frequency, duration)
+            }
+          })
+
+          // Clear active event and notes after duration
+          const clearTimeoutId = window.setTimeout(() => {
+            setActiveEventIds(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(event.id)
+              return newSet
+            })
+            setActiveNotes(prev => {
+              const newSet = new Set(prev)
+              noteStrings.forEach(noteStr => newSet.delete(noteStr))
+              return newSet
+            })
+          }, duration * 1000)
+          scheduledTimeoutsRef.current.push(clearTimeoutId)
+        }, startTime * 1000)
+
+        scheduledTimeoutsRef.current.push(timeoutId)
+      }
+    })
+
+    // Schedule automatic stop after all notes finish
+    if (totalDuration > 0) {
+      const stopTimeoutId = window.setTimeout(() => {
+        stopPlayback()
+      }, totalDuration * 1000)
+      scheduledTimeoutsRef.current.push(stopTimeoutId)
+    }
+  }
+
+  const stopPlayback = () => {
+    setIsPlaying(false)
+    setActiveEventIds(new Set())
+    setActiveNotes(new Set())
+
+    // Clear all scheduled timeouts
+    scheduledTimeoutsRef.current.forEach(clearTimeout)
+    scheduledTimeoutsRef.current = []
+  }
 
   // Update time signature
   const updateTimeSignature = (timeSignature: TimeSignature) => {
@@ -178,13 +296,22 @@ function App() {
             </select>
           </div>
           <button onClick={clearScore} className="clear-btn">Clear Notes</button>
+          <button onClick={togglePlayback} className={isPlaying ? 'stop-btn' : 'play-btn'}>
+            {isPlaying ? 'Stop' : 'Play'}
+          </button>
           <button onClick={() => setIsDebugModalOpen(true)} className="debug-btn">
             Debug JSON
           </button>
         </div>
       </div>
-      <MusicalStaff musicScore={musicScore} />
-      <Keyboard onNotePlay={handleNotePlay} />
+      <MusicalStaff
+        musicScore={musicScore}
+        activeEventIds={activeEventIds}
+      />
+      <Keyboard
+        onNotePlay={handleNotePlay}
+        activeNotes={activeNotes}
+      />
       <DebugModal
         isOpen={isDebugModalOpen}
         onClose={() => setIsDebugModalOpen(false)}
