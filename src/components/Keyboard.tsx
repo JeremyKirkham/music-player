@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
+import type { NoteDuration } from '../types/music'
 
 interface Note {
   name: string
@@ -11,9 +12,11 @@ interface Note {
 interface KeyboardProps {
   onNotePlay: (note: string) => void
   activeNotes?: Set<string>
+  currentDuration: NoteDuration
+  onDurationChange: (duration: NoteDuration) => void
 }
 
-const Keyboard = ({ onNotePlay, activeNotes = new Set() }: KeyboardProps) => {
+const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDurationChange }: KeyboardProps) => {
   const audioContextRef = useRef<AudioContext | null>(null)
   const keyboardRef = useRef<HTMLDivElement>(null)
   const onNotePlayRef = useRef(onNotePlay)
@@ -184,7 +187,24 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set() }: KeyboardProps) => {
 
   return (
     <div className="keyboard-container">
-      <h2>Piano Keyboard</h2>
+      <div className="keyboard-header">
+        <h2>Piano Keyboard</h2>
+        <div className="duration-control">
+          <label htmlFor="keyboard-duration">Duration:</label>
+          <select
+            id="keyboard-duration"
+            value={currentDuration}
+            onChange={(e) => onDurationChange(e.target.value as NoteDuration)}
+            className="duration-select"
+          >
+            <option value="whole">Whole</option>
+            <option value="half">Half</option>
+            <option value="quarter">Quarter</option>
+            <option value="eighth">Eighth</option>
+            <option value="sixteenth">Sixteenth</option>
+          </select>
+        </div>
+      </div>
       <div className="keyboard" ref={keyboardRef}>
         {/* Render white keys */}
         {whiteNotes.map(note => (
