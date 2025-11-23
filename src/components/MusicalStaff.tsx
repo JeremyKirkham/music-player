@@ -1,129 +1,104 @@
 import { useMemo, useEffect, useRef } from 'react'
 import './MusicalStaff.css'
-
-interface PlayedNote {
-  note: string
-  id: number
-}
+import type { MusicScore, MusicalEvent, Note } from '../types/music'
+import { calculateTotalDuration, formatNoteToString } from '../utils/musicUtilities'
+import NoteComponent from './Note'
 
 interface MusicalStaffProps {
-  notes: PlayedNote[]
-  timeSignature: string
+  musicScore: MusicScore
 }
 
 // Staff positioning constants (in pixels from bottom of measure)
-// Staff lines positioned at top: 60px with height: 80px in measure
-// Measure height: 200px
 const STAFF_POSITIONS = {
-  // Staff lines are at top: 60px from top of measure, height: 80px
-  // Using CSS 'bottom' positioning - lower notes = smaller values
-  // Lines are 20px apart (80px / 4 gaps)
-
-  // Staff lines (from bottom to top)
-  LINE_1: 140,  // E4 - bottom line (60px from top, 140px from bottom)
-  LINE_2: 160,  // G4 (80px from top, 120px from bottom)
-  LINE_3: 180,  // B4 - middle line (100px from top, 100px from bottom)
-  LINE_4: 200,  // D5 (120px from top, 80px from bottom)
-  LINE_5: 220,  // F5 - top line (140px from top, 60px from bottom)
-
-  // Spacing between positions (line or space)
+  LINE_1: 140,  // E4 - bottom line
+  LINE_2: 160,  // G4
+  LINE_3: 180,  // B4 - middle line
+  LINE_4: 200,  // D5
+  LINE_5: 220,  // F5 - top line
   POSITION_HEIGHT: 10,
-
-  // Base offset
   BASE_OFFSET: 140,
 } as const
 
 // Comprehensive map of all notes to their vertical positions
-// Position is in pixels from bottom of measure (200px total height)
-// IMPORTANT: Using CSS 'bottom' - lower notes = SMALLER values, higher notes = LARGER values
 const NOTE_POSITION_MAP: { [key: string]: number } = {
-  // Octave 3 (ledger lines below staff)
-  'A3': 100,
-  'B3': 110,
+  // Octave 3
+  'A3': 90,
+  'B3': 100,
 
   // Octave 4
-  'C4': 120,  // ledger line below staff (lower than E4, so smaller value)
-  'D4': 130,  // space below staff
-  'E4': 140,  // LINE_1 (bottom line)
-  'F4': 150,  // space
-  'G4': 160,  // LINE_2
-  'A4': 170,  // space
-  'B4': 180,  // LINE_3 (middle line)
+  'C4': 110,
+  'D4': 120,
+  'E4': 130,
+  'F4': 140,
+  'G4': 150,
+  'A4': 160,
+  'B4': 170,
 
   // Octave 5
-  'C5': 190,  // space
-  'D5': 200,  // LINE_4
-  'E5': 210,  // space
-  'F5': 220,  // LINE_5 (top line)
-  'G5': 230,  // space above staff
-  'A5': 240,  // ledger line above staff
-  'B5': 250,  // space above staff
+  'C5': 180,
+  'D5': 190,
+  'E5': 200,
+  'F5': 210,
+  'G5': 220,
+  'A5': 230,
+  'B5': 240,
 
   // Octave 6
-  'C6': 260,  // ledger line above staff
-  'D6': 270,
-  'E6': 280,
-  'F6': 290,
-  'G6': 300,
-  'A6': 310,
-  'B6': 320,
+  'C6': 250,
+  'D6': 260,
+  'E6': 270,
+  'F6': 280,
+  'G6': 290,
+  'A6': 300,
+  'B6': 310,
 
   // Octave 7
-  'C7': 330,
+  'C7': 320,
 } as const
 
-const MusicalStaff = ({ notes, timeSignature }: MusicalStaffProps) => {
+const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
-  // Parse time signature (e.g., "4/4" -> { beats: 4, noteValue: 4 })
-  const parsedTimeSignature = useMemo(() => {
-    const [beats, noteValue] = timeSignature.split('/').map(Number)
-    return { beats, noteValue }
-  }, [timeSignature])
 
   // Get note position from the comprehensive map
-  // Sharp/flat notes use the same position as their natural counterparts
-  const getNotePosition = (noteName: string): number => {
-    // Remove sharp/flat symbols to get the base note position
-    const baseNoteName = noteName.replace(/#|b/g, '')
+  const getNotePosition = (note: Note): number => {
+    const noteStr = formatNoteToString(note)
+    const baseNoteName = noteStr.replace(/#|b/g, '')
     return NOTE_POSITION_MAP[baseNoteName] || STAFF_POSITIONS.BASE_OFFSET
   }
 
-  // Group notes into measures based on time signature
+  // Group events into measures
   const measures = useMemo(() => {
-    const result: PlayedNote[][] = []
-    let currentMeasure: PlayedNote[] = []
+    const measureMap = new Map<number, MusicalEvent[]>()
 
-    notes.forEach((note) => {
-      if (currentMeasure.length >= parsedTimeSignature.beats) {
-        result.push(currentMeasure)
-        currentMeasure = []
+    for (const event of musicScore.events) {
+      const measureIndex = event.position.measureIndex
+      if (!measureMap.has(measureIndex)) {
+        measureMap.set(measureIndex, [])
       }
-      currentMeasure.push(note)
-    })
-
-    if (currentMeasure.length > 0) {
-      result.push(currentMeasure)
+      measureMap.get(measureIndex)!.push(event)
     }
 
-    return result
-  }, [notes, parsedTimeSignature.beats])
+    // Convert map to sorted array
+    return Array.from(measureMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([index, events]) => ({
+        index,
+        events: events.sort((a, b) => a.position.beatPosition - b.position.beatPosition),
+      }))
+  }, [musicScore.events])
 
   // Auto-scroll to show latest notes
   useEffect(() => {
-    if (staffContainerRef.current && notes.length > 0) {
-      // Scroll to the right to show the latest notes
+    if (staffContainerRef.current && musicScore.events.length > 0) {
       staffContainerRef.current.scrollLeft = staffContainerRef.current.scrollWidth
     }
-  }, [notes])
-
-  // Check if note is sharp/flat
-  const isAccidental = (noteName: string) => noteName.includes('#') || noteName.includes('b')
+  }, [musicScore.events.length])
 
   return (
     <div className="musical-staff-container">
       <div className="time-signature-display">
-        <div className="time-sig-top">{parsedTimeSignature.beats}</div>
-        <div className="time-sig-bottom">{parsedTimeSignature.noteValue}</div>
+        <div className="time-sig-top">{musicScore.timeSignature.numerator}</div>
+        <div className="time-sig-bottom">{musicScore.timeSignature.denominator}</div>
       </div>
 
       {/* Treble clef - fixed position */}
@@ -139,36 +114,56 @@ const MusicalStaff = ({ notes, timeSignature }: MusicalStaffProps) => {
 
         {/* Render measures and notes */}
         <div className="measures-container">
-          {measures.map((measure, measureIndex) => (
+          {measures.map((measure) => (
             <div
-              key={measureIndex}
+              key={measure.index}
               className="measure"
-              style={{ minWidth: `${measure.length * 50 + 40}px` }}
+              style={{ minWidth: `${measure.events.length * 50 + 40}px` }}
             >
-              {measure.map((playedNote, noteIndex) => {
-                // Get the exact vertical position from the note position map
-                const bottomPx = getNotePosition(playedNote.note)
-                // Horizontal spacing within the measure
-                const leftPosition = noteIndex * 50 + 10 // 50px spacing between notes, 10px from left
+              {measure.events.map((event, eventIndex) => {
+                const leftPosition = eventIndex * 50 + 10
+
+                if (event.type === 'rest') {
+                  // Render rest
+                  return (
+                    <div
+                      key={event.id}
+                      className="rest-wrapper"
+                      style={{ bottom: '180px', left: `${leftPosition}px` }}
+                    >
+                      <span className="rest-symbol">𝄽</span>
+                    </div>
+                  )
+                }
+
+                // Render note(s) - could be a chord
+                const notes = event.notes || []
+                if (notes.length === 0) return null
+
+                // Get position of the primary note (first note)
+                const bottomPx = getNotePosition(notes[0])
 
                 return (
-                  <div
-                    key={playedNote.id}
-                    className="note-wrapper"
-                    style={{ bottom: `${bottomPx}px`, left: `${leftPosition}px` }}
-                  >
-                    {isAccidental(playedNote.note) && (
-                      <span className="accidental">♯</span>
-                    )}
-                    <span className="note-head">●</span>
-                    <span className="note-stem" />
-                    {/* Show note name below for reference */}
-                    <span className="note-label-staff">{playedNote.note}</span>
-                  </div>
+                  <NoteComponent
+                    key={event.id}
+                    notes={notes}
+                    duration={event.duration}
+                    bottomPx={bottomPx}
+                    leftPosition={leftPosition}
+                    getNotePosition={getNotePosition}
+                  />
                 )
               })}
-              {/* Bar line after each measure except the last */}
-              {measureIndex < measures.length - 1 && <div className="bar-line" />}
+              {/* Bar line at the end of each measure - only show if measure is complete */}
+              {(() => {
+                const totalDuration = calculateTotalDuration(measure.events)
+                const expectedBeats = musicScore.timeSignature.numerator
+                const isMeasureComplete = totalDuration >= expectedBeats
+
+                return isMeasureComplete ? (
+                  <div className="bar-line" />
+                ) : null
+              })()}
             </div>
           ))}
         </div>

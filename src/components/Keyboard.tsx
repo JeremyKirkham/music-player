@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
 
 interface Note {
@@ -15,11 +15,18 @@ interface KeyboardProps {
 const Keyboard = ({ onNotePlay }: KeyboardProps) => {
   const audioContextRef = useRef<AudioContext | null>(null)
   const keyboardRef = useRef<HTMLDivElement>(null)
+  const onNotePlayRef = useRef(onNotePlay)
   const [keyDimensions, setKeyDimensions] = useState({ whiteKeyWidth: 60, blackKeyWidth: 40 })
 
+  // Keep the ref updated with the latest callback
+  useEffect(() => {
+    onNotePlayRef.current = onNotePlay
+  }, [onNotePlay])
+
   // Initialize audio context
-  useEffect(() => { 
-    audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+  useEffect(() => {
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    audioContextRef.current = new (AudioContextClass || AudioContext)()
 
     return () => {
       if (audioContextRef.current) {
@@ -62,7 +69,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
   }, [])
 
   // Note frequencies (C4 to C7 - 3 octaves)
-  const notes: Note[] = [
+  const notes: Note[] = useMemo(() => [
     // First octave (C4 to B4)
     { name: 'C4', frequency: 261.63, key: 'a' },
     { name: 'C#4', frequency: 277.18, key: 'w', isBlack: true },
@@ -103,7 +110,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
     { name: 'A#6', frequency: 1864.66, key: '5', isBlack: true },
     { name: 'B6', frequency: 1975.53, key: '[' },
     { name: 'C7', frequency: 2093.00, key: ']' },
-  ]
+  ], [])
 
   const playNote = (frequency: number, noteName: string) => {
     if (!audioContextRef.current) return
@@ -124,7 +131,8 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
     oscillator.start(audioContext.currentTime)
     oscillator.stop(audioContext.currentTime + 0.5)
 
-    onNotePlay(noteName)
+    // Use the ref to always call the latest callback
+    onNotePlayRef.current(noteName)
   }
 
   // Handle keyboard events
@@ -147,7 +155,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [])
+  }, [notes])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)

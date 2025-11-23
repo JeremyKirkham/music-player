@@ -80,44 +80,14 @@
   height: 200px;
 }
 
-.note-wrapper {
+.rest-wrapper {
   position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  transform: translateY(50%);
 }
 
-.accidental {
-  font-size: 1.2rem;
-  color: #61dafb;
-  margin-right: 2px;
-}
-
-.note-head {
+.rest-symbol {
   font-size: 2rem;
   color: #61dafb;
   line-height: 1;
-}
-
-.note-stem {
-  display: block;
-  width: 2px;
-  height: 30px;
-  background-color: #61dafb;
-  position: absolute;
-  right: -2px;
-  bottom: 10px;
-}
-
-.note-label-staff {
-  position: absolute;
-  bottom: -25px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: #888;
-  white-space: nowrap;
 }
 
 .bar-line {
@@ -125,7 +95,7 @@
   height: 80px;
   background-color: #61dafb;
   position: absolute;
-  right: -20px;
+  right: 5px;
   bottom: 140px;
 }
 
