@@ -50,9 +50,13 @@
 .note-label-staff {
   position: absolute;
   bottom: -25px;
-  left: 50%;
-  transform: translateX(-50%);
   font-size: 0.7rem;
-  color: #888;
+  color: #ffffff;
   white-space: nowrap;
+}
+
+/* Move label above for stem-down notes */
+.note-wrapper.stem-down .note-label-staff {
+  bottom: auto;
+  top: -40px;
 }
