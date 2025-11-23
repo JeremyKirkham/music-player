@@ -18,7 +18,7 @@ const Keyboard = ({ onNotePlay }: KeyboardProps) => {
   const [keyDimensions, setKeyDimensions] = useState({ whiteKeyWidth: 60, blackKeyWidth: 40 })
 
   // Initialize audio context
-  useEffect(() => {
+  useEffect(() => { 
     audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
 
     return () => {

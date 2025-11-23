@@ -4,13 +4,12 @@
   border-radius: 10px;
   padding: 30px 20px;
   min-height: 200px;
-  overflow-x: auto;
 }
 
 .time-signature-display {
   position: absolute;
   left: 80px;
-  top: 50%;
+  top: calc(30px + 75px);
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
@@ -18,7 +17,7 @@
   font-size: 1.5rem;
   font-weight: bold;
   color: #61dafb;
-  z-index: 2;
+  z-index: 3;
 }
 
 .time-sig-top,
@@ -30,20 +29,23 @@
 .staff-wrapper {
   position: relative;
   margin-left: 120px;
-  min-height: 150px;
-  padding: 20px 0;
+  min-height: 200px;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .staff-lines {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  position: sticky;
   left: 0;
-  right: 0;
+  top: 60px;
+  width: 100%;
   height: 80px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  pointer-events: none;
+  z-index: 1;
 }
 
 .staff-line {
@@ -55,12 +57,12 @@
 
 .treble-clef {
   position: absolute;
-  left: -100px;
-  top: 50%;
+  left: 20px;
+  top: calc(30px + 75px);
   transform: translateY(-50%);
   font-size: 5rem;
   color: #61dafb;
-  z-index: 2;
+  z-index: 3;
 }
 
 .measures-container {
@@ -68,14 +70,14 @@
   display: flex;
   gap: 40px;
   padding: 0 20px;
-  min-height: 120px;
+  min-height: 200px;
 }
 
 .measure {
   position: relative;
   padding: 0 10px;
   min-width: 150px;
-  height: 120px;
+  height: 200px;
 }
 
 .note-wrapper {
@@ -120,12 +122,11 @@
 
 .bar-line {
   width: 2px;
-  height: 100px;
+  height: 80px;
   background-color: #61dafb;
   position: absolute;
   right: -20px;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 140px;
 }
 
 .bar-line.final-bar {
@@ -135,10 +136,10 @@
 }
 
 .bar-line.final-bar::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 4px;
-  height: 100px;
+  height: 80px;
   background-color: #61dafb;
   left: 6px;
   top: 0;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import './App.css'
@@ -19,6 +19,24 @@ function App() {
   const clearNotes = () => {
     setPlayedNotes([])
   }
+
+  const removeLastNote = () => {
+    setPlayedNotes(prev => prev.slice(0, -1))
+  }
+
+  // Handle backspace/delete key to remove last note
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        // Prevent default behavior (like navigating back)
+        event.preventDefault()
+        removeLastNote()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <div className="app">
