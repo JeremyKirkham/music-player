@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import './DebugModal.css'
+import './MusicModal.css'
 import type { MusicScore } from '../types/music'
 
-interface DebugModalProps {
+interface MusicModalProps {
   isOpen: boolean
   onClose: () => void
   musicScore: MusicScore
@@ -20,7 +20,7 @@ const availableSongs: SongOption[] = [
   { name: 'Simple Chord Progression', file: 'simple-chord.json' },
 ]
 
-const DebugModal = ({ isOpen, onClose, musicScore, onLoadScore }: DebugModalProps) => {
+const MusicModal = ({ isOpen, onClose, musicScore, onLoadScore }: MusicModalProps) => {
   const [selectedSong, setSelectedSong] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -83,7 +83,7 @@ const DebugModal = ({ isOpen, onClose, musicScore, onLoadScore }: DebugModalProp
     <div className="debug-modal-overlay" onClick={onClose}>
       <div className="debug-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="debug-modal-header">
-          <h2>Music Score JSON Debug</h2>
+          <h2>Music Score</h2>
           <button className="debug-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="debug-modal-body">
@@ -149,4 +149,4 @@ const DebugModal = ({ isOpen, onClose, musicScore, onLoadScore }: DebugModalProp
   )
 }
 
-export default DebugModal
+export default MusicModal

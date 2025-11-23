@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
-import DebugModal from './components/DebugModal'
+import MusicModal from './components/MusicModal'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
 import {
@@ -25,7 +25,7 @@ function App() {
   )
   const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
   const [currentClef, setCurrentClef] = useState<'treble' | 'bass'>('treble')
-  const [isDebugModalOpen, setIsDebugModalOpen] = useState(false)
+  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
@@ -441,8 +441,8 @@ function App() {
           <button onClick={togglePlayback} className={isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}>
             {isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={() => setIsDebugModalOpen(true)} className="debug-btn">
-            Debug JSON
+          <button onClick={() => setIsMusicModalOpen(true)} className="debug-btn">
+            View Score
           </button>
         </div>
       </div>
@@ -454,9 +454,9 @@ function App() {
         onNotePlay={handleNotePlay}
         activeNotes={activeNotes}
       />
-      <DebugModal
-        isOpen={isDebugModalOpen}
-        onClose={() => setIsDebugModalOpen(false)}
+      <MusicModal
+        isOpen={isMusicModalOpen}
+        onClose={() => setIsMusicModalOpen(false)}
         musicScore={musicScore}
         onLoadScore={handleLoadScore}
       />

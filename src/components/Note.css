@@ -30,18 +30,6 @@
   transform: scaleX(1.3);
 }
 
-/* Whole note styling - larger and different shape */
-.whole-note .note-head {
-  font-size: 1.8rem;
-  transform: scaleX(1.5);
-}
-
-/* Half note styling - hollow */
-.half-note .note-head {
-  font-size: 1.5rem;
-  transform: scaleX(1.3);
-}
-
 .note-stem {
   display: block;
   width: 2px;
@@ -87,16 +75,6 @@
 .note-wrapper.active .accidental {
   color: #ff6b6b;
   filter: drop-shadow(0 0 4px #ff6b6b);
-}
-
-/* Flag styling for eighth and sixteenth notes */
-.note-flags {
-  position: absolute;
-  right: -8px;
-  bottom: 42px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 
 /* Flags pointing down for high notes */

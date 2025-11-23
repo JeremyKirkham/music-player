@@ -63,24 +63,11 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
     return duration !== 'whole'
   }
 
-  // Get number of flags for the note
-  const getFlagCount = (duration: string) => {
-    switch (duration) {
-      case 'eighth':
-      case 'dotted-eighth':
-        return 1
-      case 'sixteenth':
-        return 2
-      default:
-        return 0
-    }
-  }
 
   // Get the note head character based on duration
   const getNoteHead = (duration: string) => {
     switch (duration) {
       case 'whole':
-        return '𝅝' // Whole note (hollow, no stem)
       case 'half':
       case 'dotted-half':
         return '○' // Half note (hollow)
@@ -95,7 +82,6 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
   }
 
   const stemDown = isHighNote()
-  const flagCount = getFlagCount(duration)
   const noteHead = getNoteHead(duration)
 
   return (
@@ -128,19 +114,7 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
             <span className="note-head">{noteHead}</span>
             {/* Single stem attached to the last note */}
             {isLastNote && needsStem(duration) && (
-              <>
-                <span className="note-stem" />
-                {/* Render flags for eighth and sixteenth notes */}
-                {flagCount > 0 && (
-                  <span className="note-flags">
-                    {Array.from({ length: flagCount }).map((_, i) => (
-                      <span key={i} className="flag" style={{ top: `${i * 8}px` }}>
-                        {stemDown ? '𝅃' : '𝅂'}
-                      </span>
-                    ))}
-                  </span>
-                )}
-              </>
+              <span className="note-stem" />
             )}
           </div>
         )
