@@ -1,0 +1,133 @@
+{
+  "metadata": {
+    "title": "Simple Chord Progression",
+    "composer": "Demo",
+    "tempo": 80,
+    "keySignature": "C",
+    "createdAt": "2025-01-15T10:00:00Z",
+    "modifiedAt": "2025-01-15T10:00:00Z",
+    "version": "1.0"
+  },
+  "timeSignature": {
+    "numerator": 4,
+    "denominator": 4
+  },
+  "measures": [
+    {
+      "index": 0,
+      "events": ["e1", "e2", "e3", "e4"],
+      "beamGroups": [],
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      }
+    }
+  ],
+  "events": [
+    {
+      "id": "e1",
+      "type": "note",
+      "duration": "whole",
+      "notes": [
+        {
+          "pitch": "C",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "E",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "G",
+          "octave": 4,
+          "clef": "treble"
+        }
+      ],
+      "position": {
+        "measureIndex": 0,
+        "beatPosition": 0
+      }
+    },
+    {
+      "id": "e2",
+      "type": "note",
+      "duration": "whole",
+      "notes": [
+        {
+          "pitch": "F",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "A",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "C",
+          "octave": 5,
+          "clef": "treble"
+        }
+      ],
+      "position": {
+        "measureIndex": 0,
+        "beatPosition": 4
+      }
+    },
+    {
+      "id": "e3",
+      "type": "note",
+      "duration": "whole",
+      "notes": [
+        {
+          "pitch": "G",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "B",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "D",
+          "octave": 5,
+          "clef": "treble"
+        }
+      ],
+      "position": {
+        "measureIndex": 0,
+        "beatPosition": 8
+      }
+    },
+    {
+      "id": "e4",
+      "type": "note",
+      "duration": "whole",
+      "notes": [
+        {
+          "pitch": "C",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "E",
+          "octave": 4,
+          "clef": "treble"
+        },
+        {
+          "pitch": "G",
+          "octave": 4,
+          "clef": "treble"
+        }
+      ],
+      "position": {
+        "measureIndex": 0,
+        "beatPosition": 12
+      }
+    }
+  ],
+  "beamGroups": []
+}

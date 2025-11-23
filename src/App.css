@@ -18,6 +18,53 @@
   color: #61dafb;
 }
 
+.header-controls {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.duration-selector,
+.clef-selector,
+.time-signature-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.duration-selector label,
+.clef-selector label,
+.time-signature-selector label {
+  color: #61dafb;
+  font-size: 1rem;
+}
+
+.duration-dropdown,
+.clef-dropdown,
+.time-sig-dropdown {
+  padding: 8px 12px;
+  background-color: #2d2d2d;
+  color: #61dafb;
+  border: 2px solid #61dafb;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.duration-dropdown:hover,
+.clef-dropdown:hover,
+.time-sig-dropdown:hover {
+  background-color: #3d3d3d;
+}
+
+.duration-dropdown:focus,
+.clef-dropdown:focus,
+.time-sig-dropdown:focus {
+  outline: none;
+  border-color: #ffffff;
+}
+
 .clear-btn {
   padding: 10px 20px;
   background-color: #ff4444;
@@ -31,4 +78,74 @@
 
 .clear-btn:hover {
   background-color: #cc0000;
+}
+
+.debug-btn {
+  padding: 10px 20px;
+  background-color: #61dafb;
+  color: #1e1e1e;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.debug-btn:hover {
+  background-color: #4fa8c5;
+}
+
+.play-btn {
+  padding: 10px 20px;
+  background-color: #44ff44;
+  color: #1e1e1e;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.play-btn:hover {
+  background-color: #33cc33;
+}
+
+.stop-btn {
+  padding: 10px 20px;
+  background-color: #ff8844;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background-color: #cc6633;
+}
+
+.stop-btn:disabled {
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.pause-btn {
+  padding: 10px 20px;
+  background-color: #ffaa44;
+  color: #1e1e1e;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.pause-btn:hover {
+  background-color: #dd8833;
 }

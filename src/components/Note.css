@@ -1,0 +1,100 @@
+.note-wrapper {
+  position: absolute;
+}
+
+.note-group {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  left: 0;
+}
+
+.accidental {
+  font-size: 1.2rem;
+  color: #61dafb;
+  margin-right: 2px;
+}
+
+.accidental-left {
+  position: absolute;
+  left: -12px;
+  margin-right: 0;
+}
+
+.note-head {
+  font-size: 1.5rem;
+  color: #61dafb;
+  line-height: 1;
+  display: inline-block;
+  transform: scaleX(1.3);
+}
+
+.note-stem {
+  display: block;
+  width: 2px;
+  height: 50px;
+  background-color: #61dafb;
+  position: absolute;
+  left: calc(100% - 2px);
+  bottom: 10px;
+}
+
+/* Stem pointing down for high notes */
+.note-wrapper.stem-down .note-stem {
+  left: 0;
+  bottom: auto;
+  top: 10px;
+}
+
+.note-label-staff {
+  position: absolute;
+  bottom: -25px;
+  font-size: 0.7rem;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+/* Move label above for stem-down notes */
+.note-wrapper.stem-down .note-label-staff {
+  bottom: auto;
+  top: -40px;
+}
+
+/* Active state during playback */
+.note-wrapper.active .note-head {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 8px #ff6b6b);
+}
+
+.note-wrapper.active .note-stem {
+  background-color: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}
+
+.note-wrapper.active .accidental {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}
+
+/* Flags pointing down for high notes */
+.note-wrapper.stem-down .note-flags {
+  left: -8px;
+  right: auto;
+  bottom: auto;
+  top: 42px;
+}
+
+.flag {
+  font-size: 1.8rem;
+  color: #61dafb;
+  line-height: 1;
+  position: relative;
+  display: block;
+}
+
+/* Active state for flags */
+.note-wrapper.active .flag {
+  color: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}
