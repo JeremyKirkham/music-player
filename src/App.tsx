@@ -11,6 +11,7 @@ import {
   getCurrentPosition,
   generateId,
   parseNoteString,
+  recalculateScoreForTimeSignature,
 } from './utils/musicUtilities'
 import { calculateScoreBeamGroups } from './utils/beamCalculation'
 
@@ -24,7 +25,33 @@ function App() {
 
   // Update time signature
   const updateTimeSignature = (timeSignature: TimeSignature) => {
-    setMusicScore(prev => ({ ...prev, timeSignature }))
+    setMusicScore(prev => {
+      // Recalculate score with new time signature
+      let newScore = recalculateScoreForTimeSignature(prev, timeSignature)
+
+      // Recalculate beam groups
+      const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+        newScore.events,
+        newScore.timeSignature
+      )
+
+      newScore = {
+        ...newScore,
+        events: updatedEvents,
+        beamGroups,
+        measures: newScore.measures.map(measure => ({
+          ...measure,
+          beamGroups: beamGroups
+            .filter(bg => {
+              const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+              return firstEvent?.position.measureIndex === measure.index
+            })
+            .map(bg => bg.id),
+        })),
+      }
+
+      return newScore
+    })
   }
 
   // Clear all notes

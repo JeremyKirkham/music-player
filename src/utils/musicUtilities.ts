@@ -268,3 +268,89 @@ export function getCurrentPosition(
 
   return { measureIndex, beatPosition: nextBeatPosition }
 }
+
+/**
+ * Recalculate all event positions and measures based on new time signature
+ */
+export function recalculateScoreForTimeSignature(
+  score: MusicScore,
+  newTimeSignature: TimeSignature
+): MusicScore {
+  const durationMap: Record<NoteDuration, number> = {
+    'whole': 4,
+    'half': 2,
+    'quarter': 1,
+    'eighth': 0.5,
+    'sixteenth': 0.25,
+    'dotted-half': 3,
+    'dotted-quarter': 1.5,
+    'dotted-eighth': 0.75,
+  }
+
+  // Recalculate positions for all events
+  let currentMeasureIndex = 0
+  let currentBeatPosition = 0
+  const beatsPerMeasure = newTimeSignature.numerator
+
+  const updatedEvents = score.events.map(event => {
+    const eventDuration = durationMap[event.duration]
+
+    // Check if event fits in current measure
+    if (currentBeatPosition + eventDuration > beatsPerMeasure) {
+      // Move to next measure
+      currentMeasureIndex++
+      currentBeatPosition = 0
+    }
+
+    const updatedEvent = {
+      ...event,
+      position: {
+        measureIndex: currentMeasureIndex,
+        beatPosition: currentBeatPosition,
+      },
+    }
+
+    currentBeatPosition += eventDuration
+
+    // If we've filled the measure, move to next
+    if (currentBeatPosition >= beatsPerMeasure) {
+      currentMeasureIndex++
+      currentBeatPosition = 0
+    }
+
+    return updatedEvent
+  })
+
+  // Rebuild measures from updated events
+  const measuresMap = new Map<number, Measure>()
+
+  for (const event of updatedEvents) {
+    const measureIndex = event.position.measureIndex
+
+    if (!measuresMap.has(measureIndex)) {
+      measuresMap.set(measureIndex, {
+        index: measureIndex,
+        events: [],
+        beamGroups: [],
+        timeSignature: newTimeSignature,
+      })
+    }
+
+    const measure = measuresMap.get(measureIndex)!
+    measure.events.push(event.id)
+  }
+
+  const newMeasures = Array.from(measuresMap.values()).sort((a, b) => a.index - b.index)
+
+  return {
+    ...score,
+    timeSignature: newTimeSignature,
+    events: updatedEvents,
+    measures: newMeasures,
+    beamGroups: [], // Beam groups will be recalculated by the caller
+    metadata: {
+      ...score.metadata,
+      modifiedAt: new Date().toISOString(),
+    },
+  }
+}
