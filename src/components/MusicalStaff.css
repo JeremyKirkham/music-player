@@ -8,7 +8,7 @@
 
 .time-signature-display {
   position: absolute;
-  left: 80px;
+  left: 60px;
   top: calc(30px + 75px);
   transform: translateY(-50%);
   display: flex;
@@ -28,8 +28,7 @@
 
 .staff-wrapper {
   position: relative;
-  margin-left: 120px;
-  min-height: 200px;
+  margin-left: 90px;
   padding: 0;
   overflow-x: auto;
   overflow-y: hidden;

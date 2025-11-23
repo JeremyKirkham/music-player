@@ -96,13 +96,13 @@ const MusicalStaff = ({ musicScore }: MusicalStaffProps) => {
 
   return (
     <div className="musical-staff-container">
+      {/* Treble clef - fixed position */}
+      <div className="treble-clef">𝄞</div>
+
       <div className="time-signature-display">
         <div className="time-sig-top">{musicScore.timeSignature.numerator}</div>
         <div className="time-sig-bottom">{musicScore.timeSignature.denominator}</div>
       </div>
-
-      {/* Treble clef - fixed position */}
-      <div className="treble-clef">𝄞</div>
 
       <div className="staff-wrapper" ref={staffContainerRef}>
         {/* The 5 lines of the staff */}
