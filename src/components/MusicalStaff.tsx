@@ -70,7 +70,7 @@ const MusicalStaff = ({ musicScore, activeEventIds = new Set() }: MusicalStaffPr
     return NOTE_POSITION_MAP[baseNoteName] || STAFF_POSITIONS.BASE_OFFSET
   }
 
-  // Auto-scroll to keep active note in view
+  // Auto-scroll to keep active measure in view
   useEffect(() => {
     if (activeEventIds.size === 0 || !staffContainerRef.current) return
 
@@ -80,30 +80,32 @@ const MusicalStaff = ({ musicScore, activeEventIds = new Set() }: MusicalStaffPr
 
     if (!activeEvent) return
 
-    // Calculate the horizontal position of the active note
+    // Calculate the horizontal position of the active measure
     const measureWidth = 50 * musicScore.timeSignature.numerator + 40
     const measureIndex = activeEvent.position.measureIndex
-    const beatPosition = activeEvent.position.beatPosition
 
-    // Calculate absolute position: measure offset + beat offset + left padding
-    const absoluteX = (measureWidth + MEASURE_GAP) * measureIndex + beatPosition * PIXELS_PER_BEAT + 10
+    // Calculate the start and end position of the entire measure
+    const measureStartX = (measureWidth + MEASURE_GAP) * measureIndex
+    const measureEndX = measureStartX + measureWidth
 
     // Get the container's scroll position and dimensions
     const container = staffContainerRef.current
     const containerWidth = container.clientWidth
     const scrollLeft = container.scrollLeft
 
-    // Calculate if we need to scroll
-    const padding = 100 // Keep some padding from edges
-    const leftEdge = scrollLeft + padding
-    const rightEdge = scrollLeft + containerWidth - padding
+    // Check if the entire measure is visible
+    const viewportStart = scrollLeft
+    const viewportEnd = scrollLeft + containerWidth
 
-    if (absoluteX < leftEdge) {
-      // Note is off the left edge, scroll left
-      container.scrollTo({ left: absoluteX - padding, behavior: 'smooth' })
-    } else if (absoluteX > rightEdge) {
-      // Note is off the right edge, scroll right
-      container.scrollTo({ left: absoluteX - containerWidth + padding, behavior: 'smooth' })
+    // If the measure is not fully visible, scroll to show it
+    if (measureStartX < viewportStart) {
+      // Measure is off the left edge, scroll to show the start of the measure
+      container.scrollTo({ left: measureStartX, behavior: 'smooth' })
+    } else if (measureEndX > viewportEnd) {
+      // Measure is off the right edge, scroll to show the entire measure
+      // Position the measure so it fits comfortably in the viewport
+      const scrollTarget = Math.max(0, measureEndX - containerWidth + 20) // Add small padding
+      container.scrollTo({ left: scrollTarget, behavior: 'smooth' })
     }
   }, [activeEventIds, musicScore.events, musicScore.timeSignature.numerator, PIXELS_PER_BEAT, MEASURE_GAP])
 

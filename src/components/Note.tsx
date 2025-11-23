@@ -43,10 +43,13 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
       case 'whole':
         return 'whole-note'
       case 'half':
+      case 'dotted-half':
         return 'half-note'
       case 'quarter':
+      case 'dotted-quarter':
         return 'quarter-note'
       case 'eighth':
+      case 'dotted-eighth':
         return 'eighth-note'
       case 'sixteenth':
         return 'sixteenth-note'
@@ -55,9 +58,49 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
     }
   }
 
+  // Check if note needs a stem (all except whole notes)
+  const needsStem = (duration: string) => {
+    return duration !== 'whole'
+  }
+
+  // Get number of flags for the note
+  const getFlagCount = (duration: string) => {
+    switch (duration) {
+      case 'eighth':
+      case 'dotted-eighth':
+        return 1
+      case 'sixteenth':
+        return 2
+      default:
+        return 0
+    }
+  }
+
+  // Get the note head character based on duration
+  const getNoteHead = (duration: string) => {
+    switch (duration) {
+      case 'whole':
+        return '𝅝' // Whole note (hollow, no stem)
+      case 'half':
+      case 'dotted-half':
+        return '○' // Half note (hollow)
+      case 'quarter':
+      case 'dotted-quarter':
+      case 'eighth':
+      case 'dotted-eighth':
+      case 'sixteenth':
+      default:
+        return '●' // Quarter/eighth/sixteenth (filled)
+    }
+  }
+
+  const stemDown = isHighNote()
+  const flagCount = getFlagCount(duration)
+  const noteHead = getNoteHead(duration)
+
   return (
     <div
-      className={`note-wrapper ${getDurationClass(duration)} ${isHighNote() ? 'stem-down' : ''} ${isActive ? 'active' : ''}`}
+      className={`note-wrapper ${getDurationClass(duration)} ${stemDown ? 'stem-down' : ''} ${isActive ? 'active' : ''}`}
       style={{ bottom: `${bottomPx}px`, left: `${leftPosition}px` }}
     >
       {/* Render all notes in the chord */}
@@ -65,7 +108,6 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
         const noteBottomPx = getNotePosition(note)
         const offset = noteBottomPx - bottomPx
         const isLastNote = noteIndex === notes.length - 1
-        const stemDown = isHighNote()
 
         return (
           <div
@@ -83,9 +125,23 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
                 {note.accidental === 'sharp' ? '♯' : '♭'}
               </span>
             )}
-            <span className="note-head">●</span>
+            <span className="note-head">{noteHead}</span>
             {/* Single stem attached to the last note */}
-            {isLastNote && <span className="note-stem" />}
+            {isLastNote && needsStem(duration) && (
+              <>
+                <span className="note-stem" />
+                {/* Render flags for eighth and sixteenth notes */}
+                {flagCount > 0 && (
+                  <span className="note-flags">
+                    {Array.from({ length: flagCount }).map((_, i) => (
+                      <span key={i} className="flag" style={{ top: `${i * 8}px` }}>
+                        {stemDown ? '𝅃' : '𝅂'}
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         )
       })}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import DebugModal from './components/DebugModal'
@@ -27,11 +27,15 @@ function App() {
   const [currentClef, setCurrentClef] = useState<'treble' | 'bass'>('treble')
   const [isDebugModalOpen, setIsDebugModalOpen] = useState(false)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
   const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set())
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const scheduledTimeoutsRef = useRef<number[]>([])
+  const pauseTimeRef = useRef<number>(0)
+  const startTimeRef = useRef<number>(0)
+  const scheduledEventsRef = useRef<Array<{ event: MusicalEvent; startTime: number; duration: number }>>([])
 
   // Initialize audio context
   useEffect(() => {
@@ -54,15 +58,120 @@ function App() {
   }, [])
 
   // Play/Stop functionality
-  const togglePlayback = () => {
-    if (isPlaying) {
-      stopPlayback()
-    } else {
-      startPlayback()
-    }
-  }
+  const stopPlayback = useCallback(() => {
+    setIsPlaying(false)
+    setIsPaused(false)
+    setActiveEventIds(new Set())
+    setActiveNotes(new Set())
 
-  const startPlayback = () => {
+    // Clear all scheduled timeouts
+    scheduledTimeoutsRef.current.forEach(clearTimeout)
+    scheduledTimeoutsRef.current = []
+
+    // Reset tracking refs
+    pauseTimeRef.current = 0
+    startTimeRef.current = 0
+    scheduledEventsRef.current = []
+  }, [])
+
+  const pausePlayback = useCallback(() => {
+    if (!isPlaying || isPaused) return
+
+    setIsPaused(true)
+    pauseTimeRef.current = Date.now()
+
+    // Clear all scheduled timeouts
+    scheduledTimeoutsRef.current.forEach(clearTimeout)
+    scheduledTimeoutsRef.current = []
+
+    // Clear active highlights
+    setActiveEventIds(new Set())
+    setActiveNotes(new Set())
+  }, [isPlaying, isPaused])
+
+  const resumePlayback = useCallback(() => {
+    if (!isPlaying || !isPaused) return
+
+    setIsPaused(false)
+
+    // Calculate elapsed time before pause
+    const elapsedBeforePause = (pauseTimeRef.current - startTimeRef.current) / 1000
+    const now = Date.now()
+    startTimeRef.current = now - (elapsedBeforePause * 1000)
+
+    // Reschedule remaining events
+    scheduledEventsRef.current.forEach(({ event, startTime, duration }) => {
+      const timeUntilStart = startTime - elapsedBeforePause
+
+      // Only schedule events that haven't played yet
+      if (timeUntilStart > 0) {
+        if (event.type === 'note' && event.notes && audioContextRef.current) {
+          const notes = event.notes
+
+          const timeoutId = window.setTimeout(() => {
+            // Highlight the event being played
+            setActiveEventIds(prev => new Set([...prev, event.id]))
+
+            // Highlight keyboard keys for the notes being played
+            const noteStrings = notes.map(n => `${n.pitch}${n.accidental === 'sharp' ? '#' : n.accidental === 'flat' ? 'b' : ''}${n.octave}`)
+
+            // First remove the notes if they're already active (for consecutive identical notes)
+            setActiveNotes(prev => {
+              const newSet = new Set(prev)
+              noteStrings.forEach(noteStr => newSet.delete(noteStr))
+              return newSet
+            })
+
+            // Then add them back in the next tick to ensure re-render
+            setTimeout(() => {
+              setActiveNotes(prev => new Set([...prev, ...noteStrings]))
+            }, 0)
+
+            // Play sounds
+            notes.forEach(note => {
+              const frequency = getNoteFrequency(note)
+              if (audioContextRef.current) {
+                playNoteSound(audioContextRef.current, frequency, duration)
+              }
+            })
+
+            // Clear active event and notes after duration
+            const clearTimeoutId = window.setTimeout(() => {
+              setActiveEventIds(prev => {
+                const newSet = new Set(prev)
+                newSet.delete(event.id)
+                return newSet
+              })
+              setActiveNotes(prev => {
+                const newSet = new Set(prev)
+                noteStrings.forEach(noteStr => newSet.delete(noteStr))
+                return newSet
+              })
+            }, duration * 1000)
+            scheduledTimeoutsRef.current.push(clearTimeoutId)
+          }, timeUntilStart * 1000)
+
+          scheduledTimeoutsRef.current.push(timeoutId)
+        }
+      }
+    })
+
+    // Reschedule auto-stop
+    const totalDuration = scheduledEventsRef.current.length > 0
+      ? scheduledEventsRef.current[scheduledEventsRef.current.length - 1].startTime +
+        scheduledEventsRef.current[scheduledEventsRef.current.length - 1].duration
+      : 0
+    const remainingTime = totalDuration - elapsedBeforePause
+
+    if (remainingTime > 0) {
+      const stopTimeoutId = window.setTimeout(() => {
+        stopPlayback()
+      }, remainingTime * 1000)
+      scheduledTimeoutsRef.current.push(stopTimeoutId)
+    }
+  }, [isPlaying, isPaused, stopPlayback])
+
+  const startPlayback = useCallback(() => {
     if (musicScore.events.length === 0) return
 
     // Clear any existing timeouts
@@ -70,9 +179,12 @@ function App() {
     scheduledTimeoutsRef.current = []
 
     setIsPlaying(true)
+    setIsPaused(false)
+    startTimeRef.current = Date.now()
 
     // Schedule all notes
     const scheduledNotes = scheduleEvents(musicScore.events, musicScore.timeSignature.numerator)
+    scheduledEventsRef.current = scheduledNotes
 
     // Calculate total duration (end time of the last note)
     let totalDuration = 0
@@ -92,7 +204,18 @@ function App() {
 
           // Highlight keyboard keys for the notes being played
           const noteStrings = notes.map(n => `${n.pitch}${n.accidental === 'sharp' ? '#' : n.accidental === 'flat' ? 'b' : ''}${n.octave}`)
-          setActiveNotes(prev => new Set([...prev, ...noteStrings]))
+
+          // First remove the notes if they're already active (for consecutive identical notes)
+          setActiveNotes(prev => {
+            const newSet = new Set(prev)
+            noteStrings.forEach(noteStr => newSet.delete(noteStr))
+            return newSet
+          })
+
+          // Then add them back in the next tick to ensure re-render
+          setTimeout(() => {
+            setActiveNotes(prev => new Set([...prev, ...noteStrings]))
+          }, 0)
 
           // Play sounds
           notes.forEach(note => {
@@ -129,17 +252,20 @@ function App() {
       }, totalDuration * 1000)
       scheduledTimeoutsRef.current.push(stopTimeoutId)
     }
-  }
+  }, [musicScore.events, musicScore.timeSignature.numerator, stopPlayback])
 
-  const stopPlayback = () => {
-    setIsPlaying(false)
-    setActiveEventIds(new Set())
-    setActiveNotes(new Set())
-
-    // Clear all scheduled timeouts
-    scheduledTimeoutsRef.current.forEach(clearTimeout)
-    scheduledTimeoutsRef.current = []
-  }
+  const togglePlayback = useCallback(() => {
+    if (isPaused) {
+      // Resume if paused
+      resumePlayback()
+    } else if (isPlaying) {
+      // Pause if playing
+      pausePlayback()
+    } else {
+      // Start if stopped
+      startPlayback()
+    }
+  }, [isPlaying, isPaused, startPlayback, pausePlayback, resumePlayback])
 
   // Update time signature
   const updateTimeSignature = (timeSignature: TimeSignature) => {
@@ -177,7 +303,16 @@ function App() {
     setMusicScore(currentScore => createEmptyScore(currentScore.timeSignature))
   }
 
-  // Handle backspace/delete key to remove last note
+  // Load a score from JSON
+  const handleLoadScore = (score: MusicScore) => {
+    // Stop playback if currently playing
+    if (isPlaying) {
+      stopPlayback()
+    }
+    setMusicScore(score)
+  }
+
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Backspace' || event.key === 'Delete') {
@@ -190,12 +325,16 @@ function App() {
           }
           return currentScore
         })
+      } else if (event.key === ' ') {
+        // Spacebar to toggle play/stop
+        event.preventDefault()
+        togglePlayback()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [togglePlayback])
 
   // Handle note play from keyboard
   const handleNotePlay = (noteName: string) => {
@@ -296,8 +435,11 @@ function App() {
             </select>
           </div>
           <button onClick={clearScore} className="clear-btn">Clear Notes</button>
-          <button onClick={togglePlayback} className={isPlaying ? 'stop-btn' : 'play-btn'}>
-            {isPlaying ? 'Stop' : 'Play'}
+          <button onClick={stopPlayback} className="stop-btn" disabled={!isPlaying && !isPaused}>
+            Stop
+          </button>
+          <button onClick={togglePlayback} className={isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}>
+            {isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
           </button>
           <button onClick={() => setIsDebugModalOpen(true)} className="debug-btn">
             Debug JSON
@@ -316,6 +458,7 @@ function App() {
         isOpen={isDebugModalOpen}
         onClose={() => setIsDebugModalOpen(false)}
         musicScore={musicScore}
+        onLoadScore={handleLoadScore}
       />
     </div>
   )

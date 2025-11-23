@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import './DebugModal.css'
 import type { MusicScore } from '../types/music'
 
@@ -6,9 +6,45 @@ interface DebugModalProps {
   isOpen: boolean
   onClose: () => void
   musicScore: MusicScore
+  onLoadScore?: (score: MusicScore) => void
 }
 
-const DebugModal = ({ isOpen, onClose, musicScore }: DebugModalProps) => {
+interface SongOption {
+  name: string
+  file: string
+}
+
+const availableSongs: SongOption[] = [
+  { name: 'Twinkle Twinkle Little Star', file: 'twinkle-twinkle.json' },
+  { name: 'C Major Scale', file: 'c-major-scale.json' },
+  { name: 'Simple Chord Progression', file: 'simple-chord.json' },
+]
+
+const DebugModal = ({ isOpen, onClose, musicScore, onLoadScore }: DebugModalProps) => {
+  const [selectedSong, setSelectedSong] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Handle loading a song
+  const handleLoadSong = async () => {
+    if (!selectedSong || !onLoadScore) return
+
+    setIsLoading(true)
+    try {
+      const response = await fetch(`/songs/${selectedSong}`)
+      if (!response.ok) {
+        throw new Error('Failed to load song')
+      }
+      const score: MusicScore = await response.json()
+      onLoadScore(score)
+      alert(`Loaded: ${availableSongs.find(s => s.file === selectedSong)?.name}`)
+    } catch (error) {
+      console.error('Error loading song:', error)
+      alert('Failed to load song. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Handle escape key to close modal
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -51,6 +87,31 @@ const DebugModal = ({ isOpen, onClose, musicScore }: DebugModalProps) => {
           <button className="debug-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="debug-modal-body">
+          {onLoadScore && (
+            <div className="debug-song-selector">
+              <label htmlFor="song-select">Load Demo Song: </label>
+              <select
+                id="song-select"
+                value={selectedSong}
+                onChange={(e) => setSelectedSong(e.target.value)}
+                className="song-dropdown"
+              >
+                <option value="">-- Select a song --</option>
+                {availableSongs.map((song) => (
+                  <option key={song.file} value={song.file}>
+                    {song.name}
+                  </option>
+                ))}
+              </select>
+              <button
+                className="load-song-btn"
+                onClick={handleLoadSong}
+                disabled={!selectedSong || isLoading}
+              >
+                {isLoading ? 'Loading...' : 'Load'}
+              </button>
+            </div>
+          )}
           <div className="debug-stats">
             <div className="debug-stat">
               <span className="debug-stat-label">Events:</span>
