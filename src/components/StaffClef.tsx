@@ -200,14 +200,28 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
             e => e.position.measureIndex === measure.index
           )
 
-          // Calculate measure width based on the rightmost note position
-          const rightmostBeat = allEventsInMeasure.length > 0
-            ? Math.max(...allEventsInMeasure.map(e => e.position.beatPosition))
+          // Duration map for calculating note lengths
+          const durationMap: Record<string, number> = {
+            'whole': 4,
+            'half': 2,
+            'quarter': 1,
+            'eighth': 0.5,
+            'sixteenth': 0.25,
+            'dotted-half': 3,
+            'dotted-quarter': 1.5,
+            'dotted-eighth': 0.75,
+          }
+
+          // Find the rightmost point (start + duration of last note)
+          const rightmostEnd = allEventsInMeasure.length > 0
+            ? Math.max(...allEventsInMeasure.map(e =>
+                e.position.beatPosition + durationMap[e.duration]
+              ))
             : 0
 
-          // Use time signature beats for full measure, or rightmost note + padding
+          // Use time signature beats for complete measures, or rightmost end + small padding
           const expectedBeats = musicScore.timeSignature.numerator
-          const actualBeats = Math.max(rightmostBeat + 0.5, expectedBeats)
+          const actualBeats = Math.max(rightmostEnd + 0.25, expectedBeats)
           const measureWidth = Math.max(actualBeats * PIXELS_PER_BEAT + 60, 150)
 
           return (
