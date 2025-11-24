@@ -1,0 +1,16 @@
+.beam-connector {
+  z-index: 3;
+  pointer-events: none;
+}
+
+.beam-connector rect {
+  transition: fill 0.2s ease;
+  stroke: #61dafb;
+  stroke-width: 1;
+}
+
+/* Active state when any note in the beam group is active */
+.beam-connector.active rect {
+  fill: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}

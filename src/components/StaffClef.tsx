@@ -2,7 +2,9 @@ import { useMemo } from 'react'
 import './StaffClef.css'
 import type { MusicScore, MusicalEvent, Note } from '../types/music'
 import { calculateTotalDuration, formatNoteToString } from '../utils/musicUtilities'
+import { getBeamCount } from '../utils/beamCalculation'
 import NoteComponent from './Note'
+import Beam from './Beam'
 
 interface StaffClefProps {
   musicScore: MusicScore
@@ -193,11 +195,34 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
       {/* Render measures and notes */}
       <div className="measures-container">
         {measures.map((measure) => {
-          // Calculate width based on all events in this measure (both clefs)
+          // Calculate width based on time signature and actual note positions
           const allEventsInMeasure = musicScore.events.filter(
             e => e.position.measureIndex === measure.index
           )
-          const measureWidth = Math.max(allEventsInMeasure.length * 50 + 40, 150)
+
+          // Duration map for calculating note lengths
+          const durationMap: Record<string, number> = {
+            'whole': 4,
+            'half': 2,
+            'quarter': 1,
+            'eighth': 0.5,
+            'sixteenth': 0.25,
+            'dotted-half': 3,
+            'dotted-quarter': 1.5,
+            'dotted-eighth': 0.75,
+          }
+
+          // Find the rightmost point (start + duration of last note)
+          const rightmostEnd = allEventsInMeasure.length > 0
+            ? Math.max(...allEventsInMeasure.map(e =>
+                e.position.beatPosition + durationMap[e.duration]
+              ))
+            : 0
+
+          // Use time signature beats for complete measures, or rightmost end + small padding
+          const expectedBeats = musicScore.timeSignature.numerator
+          const actualBeats = Math.max(rightmostEnd + 0.25, expectedBeats)
+          const measureWidth = Math.max(actualBeats * PIXELS_PER_BEAT + 60, 150)
 
           return (
           <div
@@ -239,6 +264,83 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
                   getNotePosition={getNotePosition}
                   isActive={activeEventIds.has(event.id)}
                   onClick={onNoteClick ? () => onNoteClick(event) : undefined}
+                  beamGroupId={event.beamGroupId}
+                />
+              )
+            })}
+            {/* Render beams for beam groups in this measure */}
+            {musicScore.beamGroups.map((beamGroup) => {
+              // Get all events in this beam group
+              const groupEvents = beamGroup.eventIds
+                .map(id => musicScore.events.find(e => e.id === id))
+                .filter((e): e is MusicalEvent => e !== undefined)
+
+              // Check if this beam group belongs to current measure and clef
+              if (groupEvents.length === 0) return null
+              const firstEvent = groupEvents[0]
+              if (firstEvent.position.measureIndex !== measure.index) return null
+              if (firstEvent.type !== 'note' || !firstEvent.notes?.[0]) return null
+              if (firstEvent.notes[0].clef !== clefType) return null
+
+              // Calculate beam positions
+              const positions = groupEvents.map(event => ({
+                x: event.position.beatPosition * PIXELS_PER_BEAT + 10,
+                y: getNotePosition(event.notes![0]),
+              }))
+
+              // Helper function for note value
+              const getNoteValue = (pitch: string): number => {
+                const pitchMap: { [key: string]: number } = {
+                  'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11
+                }
+                return pitchMap[pitch] || 0
+              }
+
+              // Determine stem direction based on highest note
+              const highestNote = groupEvents.reduce((highest, event) => {
+                if (event.type !== 'note' || !event.notes) return highest
+                const note = event.notes[0]
+                const currentValue = note.octave * 12 + getNoteValue(note.pitch)
+                const highestValue = highest ? highest.octave * 12 + getNoteValue(highest.pitch) : 0
+                return currentValue > highestValue ? note : highest
+              }, null as Note | null)
+
+              const b4Value = 4 * 12 + getNoteValue('B')
+              const highestValue = highestNote ? highestNote.octave * 12 + getNoteValue(highestNote.pitch) : 0
+              const stemDown = highestValue > b4Value
+
+              // Calculate beam Y position (at stem endpoint)
+              const stemHeight = 60
+              const beamY = stemDown
+                ? Math.min(...positions.map(p => p.y)) - stemHeight
+                : Math.max(...positions.map(p => p.y)) + stemHeight
+
+              // Get beam count (1 for eighth, 2 for sixteenth)
+              const beamCount = Math.max(...groupEvents.map(e => getBeamCount(e.duration)))
+
+              // Adjust X positions to align with stems
+              // The note-head is 20px font-size scaled by 1.3x = 26px, but
+              // the actual character width varies. Testing shows ~15px works well.
+              // Stem-up: stem is at right edge (CSS: left: 100%)
+              // Stem-down: stem is at left edge (CSS: left: 0)
+              const NOTE_HEAD_WIDTH = 15
+              const stemOffset = stemDown ? 0 : NOTE_HEAD_WIDTH
+
+              // Center the beam on the stem (stem is 2px wide)
+              const STEM_WIDTH = 2
+              const startX = Math.min(...positions.map(p => p.x)) + stemOffset + (STEM_WIDTH / 2)
+              const endX = Math.max(...positions.map(p => p.x)) + stemOffset + (STEM_WIDTH / 2)
+
+              return (
+                <Beam
+                  key={beamGroup.id}
+                  beamCount={beamCount}
+                  stemDirection={stemDown ? 'down' : 'up'}
+                  startX={startX}
+                  endX={endX}
+                  beamY={beamY}
+                  notePositions={positions}
+                  stemOffset={stemOffset}
                 />
               )
             })}

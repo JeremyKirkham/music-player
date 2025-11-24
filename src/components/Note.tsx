@@ -1,5 +1,7 @@
-import type { Note as NoteType } from '../types/music'
+import type { Note as NoteType, NoteDuration } from '../types/music'
 import { formatNoteToString } from '../utils/musicUtilities'
+import { shouldBeBeamed, getBeamCount } from '../utils/beamCalculation'
+import Flag from './Flag'
 import './Note.css'
 
 interface NoteProps {
@@ -10,9 +12,10 @@ interface NoteProps {
   getNotePosition: (note: NoteType) => number
   isActive?: boolean
   onClick?: () => void
+  beamGroupId?: string
 }
 
-const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActive = false, onClick }: NoteProps) => {
+const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActive = false, onClick, beamGroupId }: NoteProps) => {
   // Check if note is sharp/flat
   const isAccidental = (note: NoteType) =>
     note.accidental === 'sharp' || note.accidental === 'flat'
@@ -85,9 +88,31 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
   const stemDown = isHighNote()
   const noteHead = getNoteHead(duration)
 
+  // Determine if we should render a flag
+  const renderFlag = () => {
+    // Only render flag if:
+    // 1. Note has a beamable duration (eighth, sixteenth, etc.)
+    // 2. Note is NOT part of a beam group
+    if (!shouldBeBeamed(duration as NoteDuration) || beamGroupId) {
+      return null
+    }
+
+    const flagCount = getBeamCount(duration as NoteDuration)
+    if (flagCount === 0) {
+      return null
+    }
+
+    return (
+      <Flag
+        count={flagCount as 1 | 2}
+        stemDirection={stemDown ? 'down' : 'up'}
+      />
+    )
+  }
+
   return (
     <div
-      className={`note-wrapper ${getDurationClass(duration)} ${stemDown ? 'stem-down' : ''} ${isActive ? 'active' : ''} ${onClick ? 'clickable' : ''}`}
+      className={`note-wrapper ${getDurationClass(duration)} ${stemDown ? 'stem-down' : ''} ${isActive ? 'active' : ''} ${onClick ? 'clickable' : ''} ${beamGroupId ? 'beamed' : ''}`}
       style={{ bottom: `${bottomPx}px`, left: `${leftPosition}px` }}
       onClick={onClick}
     >
@@ -121,6 +146,8 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
           </div>
         )
       })}
+      {/* Render flag if not in beam group */}
+      {renderFlag()}
       {/* Show note name below for reference */}
       <span className="note-label-staff">
         {notes.map(n => formatNoteToString(n)).join('+')}

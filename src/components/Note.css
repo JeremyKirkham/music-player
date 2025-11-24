@@ -46,6 +46,14 @@
   overflow: visible;
 }
 
+/* Thicker outline for whole notes */
+.note-wrapper.whole-note .note-head {
+  text-shadow: -0.5px -0.5px 0 #61dafb, 0.5px -0.5px 0 #61dafb,
+    -0.5px 0.5px 0 #61dafb, 0.5px 0.5px 0 #61dafb, -1px 0 0 #61dafb,
+    1px 0 0 #61dafb, 0 -1px 0 #61dafb, 0 1px 0 #61dafb;
+  font-weight: bold;
+}
+
 .note-stem {
   display: block;
   width: 2px;
@@ -61,6 +69,11 @@
   left: 0;
   bottom: auto;
   top: 10px;
+}
+
+/* Hide stems for beamed notes - the Beam component will draw them */
+.note-wrapper.beamed .note-stem {
+  display: none;
 }
 
 .note-label-staff {

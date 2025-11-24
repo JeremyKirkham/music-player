@@ -1,0 +1,23 @@
+.note-flags {
+  position: absolute;
+  left: 20px;
+  bottom: 50px;
+  pointer-events: none;
+  z-index: 3;
+  margin-left: -2px;
+}
+
+.note-flags.flags-down {
+  transform: scaleY(-1);
+  margin-left: 6px;
+}
+
+.note-flags .flag {
+  display: block;
+}
+
+/* Active state for flags */
+.note-wrapper.active .note-flags svg path {
+  fill: #ff6b6b;
+  filter: drop-shadow(0 0 4px #ff6b6b);
+}
