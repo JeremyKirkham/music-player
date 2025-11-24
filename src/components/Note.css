@@ -63,6 +63,11 @@
   top: 10px;
 }
 
+/* Hide stems for beamed notes - the Beam component will draw them */
+.note-wrapper.beamed .note-stem {
+  display: none;
+}
+
 .note-label-staff {
   position: absolute;
   bottom: -25px;
