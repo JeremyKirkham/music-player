@@ -11,7 +11,7 @@ test.describe('Music Player App', () => {
   });
 
   test('should display the musical staff', async ({ page }) => {
-    const staff = page.locator('.musical-staff');
+    const staff = page.locator('.musical-staff-container');
     await expect(staff).toBeVisible();
   });
 
@@ -24,9 +24,9 @@ test.describe('Music Player App', () => {
     const menuBar = page.locator('.menu-bar');
     await expect(menuBar).toBeVisible();
     
-    // Check for tempo control
-    const tempoInput = page.locator('input[type="number"]');
-    await expect(tempoInput).toBeVisible();
+    // Check for tempo control (it's a select dropdown, not input[type="number"])
+    const tempoSelect = page.locator('#tempo');
+    await expect(tempoSelect).toBeVisible();
   });
 
   test('should add a note when clicking a keyboard key', async ({ page }) => {
@@ -34,18 +34,18 @@ test.describe('Music Player App', () => {
     const keyboard = page.locator('.keyboard');
     await expect(keyboard).toBeVisible();
     
-    // Click on middle C key
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    // Click on middle C key (it's a button with class piano-key)
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     
     // Check that a note appears on the staff
-    const notes = page.locator('.note');
+    const notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(1);
   });
 
   test('should play notes when clicking the play button', async ({ page }) => {
     // Add a note first
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     
     // Find and click the play button
@@ -53,18 +53,18 @@ test.describe('Music Player App', () => {
     await playButton.click();
     
     // Check that the note becomes active during playback
-    await expect(page.locator('.note.active')).toBeVisible({ timeout: 1000 });
+    await expect(page.locator('.note-wrapper.active')).toHaveCount(1, { timeout: 1000 });
   });
 
   test('should clear all notes when clicking clear button', async ({ page }) => {
     // Add a few notes
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     await cKey.click();
     
     // Verify notes were added
-    const notesBeforeClear = page.locator('.note');
-    await expect(notesBeforeClear.first()).toBeVisible();
+    const notesBeforeClear = page.locator('.note-wrapper');
+    await expect(notesBeforeClear).toHaveCount(2);
     
     // Handle the confirmation dialog
     page.on('dialog', dialog => dialog.accept());
@@ -74,53 +74,48 @@ test.describe('Music Player App', () => {
     await clearButton.click();
     
     // Verify notes are gone
-    const notesAfterClear = page.locator('.note');
+    const notesAfterClear = page.locator('.note-wrapper');
     await expect(notesAfterClear).toHaveCount(0);
   });
 
   test('should change note duration', async ({ page }) => {
-    // Find duration buttons (quarter, half, whole, etc.)
-    const durationButtons = page.locator('.duration-selector button');
-    await expect(durationButtons.first()).toBeVisible();
+    // Find duration select dropdown
+    const durationSelect = page.locator('#keyboard-duration');
+    await expect(durationSelect).toBeVisible();
     
-    // Click on a different duration
-    const halfNoteButton = durationButtons.filter({ hasText: /half|½/i }).first();
-    if (await halfNoteButton.isVisible()) {
-      await halfNoteButton.click();
-      
-      // Add a note with the new duration
-      const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
-      await cKey.click();
-      
-      // Verify note was added
-      const notes = page.locator('.note');
-      await expect(notes).toHaveCount(1);
-    }
+    // Change to half note
+    await durationSelect.selectOption('half');
+    
+    // Add a note with the new duration
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Verify note was added
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(1);
   });
 
   test('should open music modal when clicking view music button', async ({ page }) => {
     // Add a note first
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     
     // Click view music button
-    const viewMusicButton = page.getByRole('button', { name: /music|json/i });
-    if (await viewMusicButton.isVisible()) {
-      await viewMusicButton.click();
-      
-      // Check that modal appears
-      const modal = page.locator('.music-modal, .modal');
-      await expect(modal.first()).toBeVisible();
-    }
+    const viewMusicButton = page.getByRole('button', { name: /View Score/i });
+    await viewMusicButton.click();
+    
+    // Check that modal appears
+    const modal = page.locator('.debug-modal-overlay');
+    await expect(modal.first()).toBeVisible();
   });
 
   test('should undo note addition with keyboard shortcut', async ({ page }) => {
     // Add a note
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     
     // Verify note was added
-    let notes = page.locator('.note');
+    let notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(1);
     
     // Use undo shortcut (Cmd+Z on Mac, Ctrl+Z on other platforms)
@@ -132,42 +127,41 @@ test.describe('Music Player App', () => {
     }
     
     // Verify note was removed
-    notes = page.locator('.note');
+    notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(0);
   });
 
   test('should delete last note with backspace key', async ({ page }) => {
     // Add two notes
-    const cKey = page.locator('.key').filter({ hasText: 'C4' }).first();
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     await cKey.click();
     
     // Verify two notes were added
-    let notes = page.locator('.note');
+    let notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(2);
     
     // Press backspace
     await page.keyboard.press('Backspace');
     
     // Verify one note was removed
-    notes = page.locator('.note');
+    notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(1);
   });
 
   test('should change tempo', async ({ page }) => {
-    // Find tempo input
-    const tempoInput = page.locator('input[type="number"]').first();
-    await expect(tempoInput).toBeVisible();
+    // Find tempo select dropdown
+    const tempoSelect = page.locator('#tempo');
+    await expect(tempoSelect).toBeVisible();
     
     // Get initial value
-    const initialValue = await tempoInput.inputValue();
+    const initialValue = await tempoSelect.inputValue();
     
-    // Change tempo
-    await tempoInput.fill('140');
-    await tempoInput.blur();
+    // Change tempo to 140
+    await tempoSelect.selectOption('140');
     
     // Verify value changed
-    const newValue = await tempoInput.inputValue();
+    const newValue = await tempoSelect.inputValue();
     expect(newValue).toBe('140');
     expect(newValue).not.toBe(initialValue);
   });
