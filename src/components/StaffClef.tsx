@@ -134,34 +134,41 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
     return positionMap[baseNoteName] || STAFF_POSITIONS.BASE_OFFSET
   }
 
-  // Filter events for this clef
-  const clefEvents = useMemo(() => {
-    return musicScore.events.filter(event => {
-      if (event.type === 'rest') return true // Rests can appear in any clef
-      return event.notes?.some(note => note.clef === clefType)
-    })
-  }, [musicScore.events, clefType])
-
-  // Group events into measures
-  const measures = useMemo(() => {
+  // Group ALL events into measures (for both clefs)
+  const allMeasures = useMemo(() => {
     const measureMap = new Map<number, MusicalEvent[]>()
 
-    for (const event of clefEvents) {
+    // First, identify all measure indices from all events
+    for (const event of musicScore.events) {
       const measureIndex = event.position.measureIndex
       if (!measureMap.has(measureIndex)) {
         measureMap.set(measureIndex, [])
       }
-      measureMap.get(measureIndex)!.push(event)
     }
 
     // Convert map to sorted array
-    return Array.from(measureMap.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([index, events]) => ({
-        index,
-        events: events.sort((a, b) => a.position.beatPosition - b.position.beatPosition),
-      }))
-  }, [clefEvents])
+    return Array.from(measureMap.keys()).sort((a, b) => a - b)
+  }, [musicScore.events])
+
+  // Filter events for this clef and group by measure
+  const measures = useMemo(() => {
+    const clefEvents = musicScore.events.filter(event => {
+      if (event.type === 'rest') return true // Rests can appear in any clef
+      return event.notes?.some(note => note.clef === clefType)
+    })
+
+    // Create a measure for each measure index, even if empty for this clef
+    return allMeasures.map(measureIndex => {
+      const eventsInMeasure = clefEvents
+        .filter(event => event.position.measureIndex === measureIndex)
+        .sort((a, b) => a.position.beatPosition - b.position.beatPosition)
+
+      return {
+        index: measureIndex,
+        events: eventsInMeasure,
+      }
+    })
+  }, [musicScore.events, clefType, allMeasures])
 
   const clefSymbol = clefType === 'treble' ? '𝄞' : '𝄢'
 
@@ -185,11 +192,18 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
 
       {/* Render measures and notes */}
       <div className="measures-container">
-        {measures.map((measure) => (
+        {measures.map((measure) => {
+          // Calculate width based on all events in this measure (both clefs)
+          const allEventsInMeasure = musicScore.events.filter(
+            e => e.position.measureIndex === measure.index
+          )
+          const measureWidth = Math.max(allEventsInMeasure.length * 50 + 40, 150)
+
+          return (
           <div
             key={measure.index}
             className="measure"
-            style={{ minWidth: `${measure.events.length * 50 + 40}px` }}
+            style={{ minWidth: `${measureWidth}px` }}
           >
             {measure.events.map((event) => {
               // Position notes based on their beat position within the measure
@@ -230,7 +244,11 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
             })}
             {/* Bar line at the end of each measure - only show if measure is complete */}
             {(() => {
-              const totalDuration = calculateTotalDuration(measure.events)
+              // Check if measure is complete based on ALL events (both clefs)
+              const allEventsInMeasure = musicScore.events.filter(
+                e => e.position.measureIndex === measure.index
+              )
+              const totalDuration = calculateTotalDuration(allEventsInMeasure)
               const expectedBeats = musicScore.timeSignature.numerator
               const isMeasureComplete = totalDuration >= expectedBeats
 
@@ -239,7 +257,8 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
               ) : null
             })()}
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
