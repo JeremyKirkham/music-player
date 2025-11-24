@@ -93,8 +93,15 @@
   color: #1e1e1e;
 }
 
-.control-btn.play-btn:hover {
+.control-btn.play-btn:hover:not(:disabled) {
   background-color: #33cc33;
+}
+
+.control-btn.play-btn:disabled {
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .control-btn.pause-btn {

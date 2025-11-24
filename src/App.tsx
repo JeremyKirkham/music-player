@@ -590,7 +590,7 @@ function App() {
           </div>
         </div>
         <div className="menu-section">
-          <button onClick={togglePlayback} className={`control-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}>
+          <button onClick={togglePlayback} className={`control-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`} disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}>
             {isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
           </button>
           <button onClick={stopPlayback} className="control-btn stop-btn" disabled={!isPlaying && !isPaused}>
