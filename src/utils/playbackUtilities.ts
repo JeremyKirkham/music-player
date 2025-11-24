@@ -6,11 +6,11 @@
 import type { MusicalEvent, NoteDuration, Note } from '../types/music'
 import { formatNoteToString } from './musicUtilities'
 
-// Map durations to seconds (assuming 120 BPM, quarter note = 0.5 seconds)
+// Map durations to seconds (tempo-dependent)
 const DEFAULT_BPM = 120
-const BEAT_DURATION = 60 / DEFAULT_BPM // seconds per beat
 
-export const getDurationInSeconds = (duration: NoteDuration): number => {
+export const getDurationInSeconds = (duration: NoteDuration, bpm: number = DEFAULT_BPM): number => {
+  const beatDuration = 60 / bpm // seconds per beat
   const durationMap: Record<NoteDuration, number> = {
     'whole': 4,
     'half': 2,
@@ -22,7 +22,7 @@ export const getDurationInSeconds = (duration: NoteDuration): number => {
     'dotted-eighth': 0.75,
   }
 
-  return durationMap[duration] * BEAT_DURATION
+  return durationMap[duration] * beatDuration
 }
 
 export const getDurationInBeats = (duration: NoteDuration): number => {
@@ -68,8 +68,9 @@ export interface ScheduledNote {
 /**
  * Calculate scheduled playback times for all events
  */
-export const scheduleEvents = (events: MusicalEvent[], beatsPerMeasure: number = 4): ScheduledNote[] => {
+export const scheduleEvents = (events: MusicalEvent[], beatsPerMeasure: number = 4, bpm: number = DEFAULT_BPM): ScheduledNote[] => {
   const scheduled: ScheduledNote[] = []
+  const beatDuration = 60 / bpm // seconds per beat
 
   // Sort events by position
   const sortedEvents = [...events].sort((a, b) => {
@@ -83,8 +84,8 @@ export const scheduleEvents = (events: MusicalEvent[], beatsPerMeasure: number =
     // Calculate absolute time based on measure and beat position
     const absoluteBeatPosition =
       event.position.measureIndex * beatsPerMeasure + event.position.beatPosition
-    const startTime = absoluteBeatPosition * BEAT_DURATION
-    const duration = getDurationInSeconds(event.duration)
+    const startTime = absoluteBeatPosition * beatDuration
+    const duration = getDurationInSeconds(event.duration, bpm)
 
     scheduled.push({
       event,

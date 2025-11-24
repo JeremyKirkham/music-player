@@ -24,7 +24,12 @@ function App() {
   const [musicScore, setMusicScore] = useState<MusicScore>(() =>
     createEmptyScore({ numerator: 4, denominator: 4 })
   )
+  const [history, setHistory] = useState<MusicScore[]>([
+    createEmptyScore({ numerator: 4, denominator: 4 })
+  ])
+  const [historyIndex, setHistoryIndex] = useState<number>(0)
   const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
+  const [tempo, setTempo] = useState<number>(120) // BPM
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
   const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
@@ -185,7 +190,7 @@ function App() {
     startTimeRef.current = Date.now()
 
     // Schedule all notes
-    const scheduledNotes = scheduleEvents(musicScore.events, musicScore.timeSignature.numerator)
+    const scheduledNotes = scheduleEvents(musicScore.events, musicScore.timeSignature.numerator, tempo)
     scheduledEventsRef.current = scheduledNotes
 
     // Calculate total duration (end time of the last note)
@@ -254,7 +259,7 @@ function App() {
       }, totalDuration * 1000)
       scheduledTimeoutsRef.current.push(stopTimeoutId)
     }
-  }, [musicScore.events, musicScore.timeSignature.numerator, stopPlayback])
+  }, [musicScore.events, musicScore.timeSignature.numerator, tempo, stopPlayback])
 
   const togglePlayback = useCallback(() => {
     if (isPaused) {
@@ -269,40 +274,74 @@ function App() {
     }
   }, [isPlaying, isPaused, startPlayback, pausePlayback, resumePlayback])
 
+  // Helper to update score with history tracking
+  const updateScoreWithHistory = (newScore: MusicScore) => {
+    setMusicScore(newScore)
+    // Truncate any future history if we're not at the end
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(newScore)
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+  }
+
+  // Undo function
+  const undo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      setMusicScore(history[newIndex])
+    }
+  }
+
+  // Redo function
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      setMusicScore(history[newIndex])
+    }
+  }
+
   // Update time signature
   const updateTimeSignature = (timeSignature: TimeSignature) => {
-    setMusicScore(prev => {
-      // Recalculate score with new time signature
-      let newScore = recalculateScoreForTimeSignature(prev, timeSignature)
+    // Recalculate score with new time signature
+    let newScore = recalculateScoreForTimeSignature(musicScore, timeSignature)
 
-      // Recalculate beam groups
-      const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
-        newScore.events,
-        newScore.timeSignature
-      )
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+      newScore.events,
+      newScore.timeSignature
+    )
 
-      newScore = {
-        ...newScore,
-        events: updatedEvents,
-        beamGroups,
-        measures: newScore.measures.map(measure => ({
-          ...measure,
-          beamGroups: beamGroups
-            .filter(bg => {
-              const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
-              return firstEvent?.position.measureIndex === measure.index
-            })
-            .map(bg => bg.id),
-        })),
-      }
+    newScore = {
+      ...newScore,
+      events: updatedEvents,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
 
-      return newScore
-    })
+    updateScoreWithHistory(newScore)
   }
 
   // Clear all notes
   const clearScore = () => {
-    setMusicScore(currentScore => createEmptyScore(currentScore.timeSignature))
+    const newScore = createEmptyScore(musicScore.timeSignature)
+    updateScoreWithHistory(newScore)
+  }
+
+  // Handle clear with confirmation
+  const handleClearScore = () => {
+    if (confirm('Are you sure you want to clear all notes? This action cannot be undone.')) {
+      clearScore()
+    }
   }
 
   // Load a score from JSON
@@ -311,22 +350,34 @@ function App() {
     if (isPlaying) {
       stopPlayback()
     }
-    setMusicScore(score)
+    updateScoreWithHistory(score)
   }
 
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Undo: Ctrl/Cmd + Z
+      if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        undo()
+        return
+      }
+      
+      // Redo: Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y
+      if ((event.metaKey || event.ctrlKey) && (event.shiftKey && event.key === 'z' || event.key === 'y')) {
+        event.preventDefault()
+        redo()
+        return
+      }
+
       if (event.key === 'Backspace' || event.key === 'Delete') {
         // Prevent default behavior (like navigating back)
         event.preventDefault()
-        setMusicScore(currentScore => {
-          if (currentScore.events.length > 0) {
-            const lastEvent = currentScore.events[currentScore.events.length - 1]
-            return removeEventFromScore(currentScore, lastEvent.id)
-          }
-          return currentScore
-        })
+        if (musicScore.events.length > 0) {
+          const lastEvent = musicScore.events[musicScore.events.length - 1]
+          const newScore = removeEventFromScore(musicScore, lastEvent.id)
+          updateScoreWithHistory(newScore)
+        }
       } else if (event.key === ' ') {
         // Spacebar to toggle play/stop
         event.preventDefault()
@@ -336,53 +387,51 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [togglePlayback])
+  }, [togglePlayback, musicScore, historyIndex, history])
 
   // Handle note play from keyboard
   const handleNotePlay = (noteName: string) => {
-    setMusicScore(currentScore => {
-      const position = getCurrentPosition(currentScore, currentScore.timeSignature)
-      const parsedNote = parseNoteString(noteName)
+    const position = getCurrentPosition(musicScore, musicScore.timeSignature)
+    const parsedNote = parseNoteString(noteName)
 
-      const event: MusicalEvent = {
-        id: generateId(),
-        type: 'note',
-        duration: currentDuration,
-        notes: [
-          {
-            ...parsedNote,
-            clef: 'treble',
-          },
-        ],
-        position,
-      }
+    const event: MusicalEvent = {
+      id: generateId(),
+      type: 'note',
+      duration: currentDuration,
+      notes: [
+        {
+          ...parsedNote,
+          clef: 'treble',
+        },
+      ],
+      position,
+    }
 
-      // Add the event to the score
-      let newScore = addEventToScore(currentScore, event)
+    // Add the event to the score
+    let newScore = addEventToScore(musicScore, event)
 
-      // Recalculate beam groups
-      const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
-        newScore.events,
-        newScore.timeSignature
-      )
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+      newScore.events,
+      newScore.timeSignature
+    )
 
-      newScore = {
-        ...newScore,
-        events: updatedEvents,
-        beamGroups,
-        measures: newScore.measures.map(measure => ({
-          ...measure,
-          beamGroups: beamGroups
-            .filter(bg => {
-              const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
-              return firstEvent?.position.measureIndex === measure.index
-            })
-            .map(bg => bg.id),
-        })),
-      }
+    newScore = {
+      ...newScore,
+      events: updatedEvents,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
 
-      return newScore
-    })
+    updateScoreWithHistory(newScore)
   }
 
   // Handle note click to open edit modal
@@ -393,79 +442,75 @@ function App() {
 
   // Handle saving updated note
   const handleSaveNote = (updatedEvent: MusicalEvent) => {
-    setMusicScore(currentScore => {
-      // Find and replace the event with the updated one
-      const updatedEvents = currentScore.events.map(event =>
-        event.id === updatedEvent.id ? updatedEvent : event
-      )
+    // Find and replace the event with the updated one
+    const updatedEvents = musicScore.events.map(event =>
+      event.id === updatedEvent.id ? updatedEvent : event
+    )
 
-      // Create a temporary score with updated events
-      let tempScore: MusicScore = {
-        ...currentScore,
-        events: updatedEvents,
-      }
+    // Create a temporary score with updated events
+    let tempScore: MusicScore = {
+      ...musicScore,
+      events: updatedEvents,
+    }
 
-      // Recalculate all positions and measures based on new durations
-      tempScore = recalculateScoreForTimeSignature(tempScore, currentScore.timeSignature)
+    // Recalculate all positions and measures based on new durations
+    tempScore = recalculateScoreForTimeSignature(tempScore, musicScore.timeSignature)
 
-      // Recalculate beam groups
-      const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
-        tempScore.events,
-        currentScore.timeSignature
-      )
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
+      tempScore.events,
+      musicScore.timeSignature
+    )
 
-      // Update the score with beam groups
-      const newScore: MusicScore = {
-        ...tempScore,
-        events: eventsWithBeams,
-        beamGroups,
-        measures: tempScore.measures.map(measure => ({
-          ...measure,
-          beamGroups: beamGroups
-            .filter(bg => {
-              const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
-              return firstEvent?.position.measureIndex === measure.index
-            })
-            .map(bg => bg.id),
-        })),
-      }
+    // Update the score with beam groups
+    const newScore: MusicScore = {
+      ...tempScore,
+      events: eventsWithBeams,
+      beamGroups,
+      measures: tempScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
 
-      return newScore
-    })
+    updateScoreWithHistory(newScore)
   }
 
   // Handle deleting a note
   const handleDeleteNote = (eventId: string) => {
-    setMusicScore(currentScore => {
-      // Remove the event
-      let newScore = removeEventFromScore(currentScore, eventId)
+    // Remove the event
+    let newScore = removeEventFromScore(musicScore, eventId)
 
-      // Recalculate all positions and measures for remaining events
-      newScore = recalculateScoreForTimeSignature(newScore, currentScore.timeSignature)
+    // Recalculate all positions and measures for remaining events
+    newScore = recalculateScoreForTimeSignature(newScore, musicScore.timeSignature)
 
-      // Recalculate beam groups
-      const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
-        newScore.events,
-        currentScore.timeSignature
-      )
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+      newScore.events,
+      musicScore.timeSignature
+    )
 
-      newScore = {
-        ...newScore,
-        events: updatedEvents,
-        beamGroups,
-        measures: newScore.measures.map(measure => ({
-          ...measure,
-          beamGroups: beamGroups
-            .filter(bg => {
-              const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
-              return firstEvent?.position.measureIndex === measure.index
-            })
-            .map(bg => bg.id),
-        })),
-      }
+    newScore = {
+      ...newScore,
+      events: updatedEvents,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
 
-      return newScore
-    })
+    updateScoreWithHistory(newScore)
   }
 
   return (
@@ -485,6 +530,7 @@ function App() {
                 updateTimeSignature({ numerator, denominator })
               }}
               className="control-select"
+              disabled={isPlaying || isPaused}
             >
               <option value="2/4">2/4</option>
               <option value="3/4">3/4</option>
@@ -492,6 +538,25 @@ function App() {
               <option value="6/8">6/8</option>
               <option value="5/4">5/4</option>
               <option value="7/8">7/8</option>
+            </select>
+          </div>
+          <div className="control-group">
+            <label htmlFor="tempo">Tempo (BPM):</label>
+            <select
+              id="tempo"
+              value={tempo}
+              onChange={(e) => setTempo(Number(e.target.value))}
+              className="control-select"
+              disabled={isPlaying || isPaused}
+            >
+              <option value="40">40 - Grave</option>
+              <option value="60">60 - Largo</option>
+              <option value="80">80 - Andante</option>
+              <option value="100">100 - Moderato</option>
+              <option value="120">120 - Allegro</option>
+              <option value="140">140 - Vivace</option>
+              <option value="160">160 - Presto</option>
+              <option value="180">180 - Prestissimo</option>
             </select>
           </div>
         </div>
@@ -502,7 +567,7 @@ function App() {
           <button onClick={stopPlayback} className="control-btn stop-btn" disabled={!isPlaying && !isPaused}>
             Stop
           </button>
-          <button onClick={clearScore} className="control-btn clear-btn">Clear</button>
+          <button onClick={handleClearScore} className="control-btn clear-btn">Clear</button>
           <button onClick={() => setIsMusicModalOpen(true)} className="control-btn view-btn">
             View Score
           </button>

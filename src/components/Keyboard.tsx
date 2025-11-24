@@ -142,6 +142,11 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
   // Handle keyboard events
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Ignore keyboard shortcuts with modifier keys
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+        return
+      }
+
       const key = event.key.toLowerCase()
       const note = notes.find(n => n.key === key)
 
