@@ -9,9 +9,10 @@ interface NoteProps {
   leftPosition: number
   getNotePosition: (note: NoteType) => number
   isActive?: boolean
+  onClick?: () => void
 }
 
-const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActive = false }: NoteProps) => {
+const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActive = false, onClick }: NoteProps) => {
   // Check if note is sharp/flat
   const isAccidental = (note: NoteType) =>
     note.accidental === 'sharp' || note.accidental === 'flat'
@@ -86,8 +87,9 @@ const Note = ({ notes, duration, bottomPx, leftPosition, getNotePosition, isActi
 
   return (
     <div
-      className={`note-wrapper ${getDurationClass(duration)} ${stemDown ? 'stem-down' : ''} ${isActive ? 'active' : ''}`}
+      className={`note-wrapper ${getDurationClass(duration)} ${stemDown ? 'stem-down' : ''} ${isActive ? 'active' : ''} ${onClick ? 'clickable' : ''}`}
       style={{ bottom: `${bottomPx}px`, left: `${leftPosition}px` }}
+      onClick={onClick}
     >
       {/* Render all notes in the chord */}
       {notes.map((note, noteIndex) => {

@@ -7,6 +7,7 @@ import NoteComponent from './Note'
 interface MusicalStaffProps {
   musicScore: MusicScore
   activeEventIds?: Set<string>
+  onNoteClick?: (event: MusicalEvent) => void
 }
 
 // Staff positioning constants (in pixels from bottom of measure)
@@ -57,7 +58,7 @@ const NOTE_POSITION_MAP: { [key: string]: number } = {
   'C7': 320,
 } as const
 
-const MusicalStaff = ({ musicScore, activeEventIds = new Set() }: MusicalStaffProps) => {
+const MusicalStaff = ({ musicScore, activeEventIds = new Set(), onNoteClick }: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
 
   const PIXELS_PER_BEAT = 50
@@ -196,6 +197,7 @@ const MusicalStaff = ({ musicScore, activeEventIds = new Set() }: MusicalStaffPr
                     leftPosition={leftPosition}
                     getNotePosition={getNotePosition}
                     isActive={activeEventIds.has(event.id)}
+                    onClick={onNoteClick ? () => onNoteClick(event) : undefined}
                   />
                 )
               })}

@@ -2,150 +2,140 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 20px;
-  gap: 20px;
+  padding: 0;
+  gap: 0;
 }
 
-.header {
+.app > *:not(.title-bar):not(.menu-bar) {
+  padding: 15px;
+}
+
+/* Title Bar */
+.title-bar {
+  text-align: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #444;
+}
+
+.title-bar h1 {
+  font-size: 1.5rem;
+  color: #61dafb;
+  margin: 0;
+}
+
+/* Menu Bar */
+.menu-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-}
-
-.header h1 {
-  font-size: 2rem;
-  color: #61dafb;
-}
-
-.header-controls {
-  display: flex;
+  padding: 8px 15px;
+  background-color: #1e1e1e;
+  border-bottom: 1px solid #444;
   gap: 20px;
+}
+
+.menu-section {
+  display: flex;
+  gap: 12px;
   align-items: center;
 }
 
-.duration-selector,
-.clef-selector,
-.time-signature-selector {
+/* Control Groups */
+.control-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
-.duration-selector label,
-.clef-selector label,
-.time-signature-selector label {
+.control-group label {
   color: #61dafb;
-  font-size: 1rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
-.duration-dropdown,
-.clef-dropdown,
-.time-sig-dropdown {
-  padding: 8px 12px;
+/* Select Dropdowns */
+.control-select {
+  padding: 4px 8px;
   background-color: #2d2d2d;
-  color: #61dafb;
-  border: 2px solid #61dafb;
-  border-radius: 5px;
+  color: #c9d1d9;
+  border: 1px solid #444;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.85rem;
   transition: all 0.2s;
 }
 
-.duration-dropdown:hover,
-.clef-dropdown:hover,
-.time-sig-dropdown:hover {
+.control-select:hover {
+  border-color: #61dafb;
   background-color: #3d3d3d;
 }
 
-.duration-dropdown:focus,
-.clef-dropdown:focus,
-.time-sig-dropdown:focus {
+.control-select:focus {
   outline: none;
-  border-color: #ffffff;
+  border-color: #61dafb;
+  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.1);
 }
 
-.clear-btn {
-  padding: 10px 20px;
-  background-color: #ff4444;
-  color: white;
+/* Buttons */
+.control-btn {
+  padding: 5px 12px;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  white-space: nowrap;
 }
 
-.clear-btn:hover {
-  background-color: #cc0000;
-}
-
-.debug-btn {
-  padding: 10px 20px;
-  background-color: #61dafb;
-  color: #1e1e1e;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background-color 0.2s;
-}
-
-.debug-btn:hover {
-  background-color: #4fa8c5;
-}
-
-.play-btn {
-  padding: 10px 20px;
+.control-btn.play-btn {
   background-color: #44ff44;
   color: #1e1e1e;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background-color 0.2s;
 }
 
-.play-btn:hover {
+.control-btn.play-btn:hover {
   background-color: #33cc33;
 }
 
-.stop-btn {
-  padding: 10px 20px;
-  background-color: #ff8844;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background-color 0.2s;
+.control-btn.pause-btn {
+  background-color: #ffaa44;
+  color: #1e1e1e;
 }
 
-.stop-btn:hover:not(:disabled) {
+.control-btn.pause-btn:hover {
+  background-color: #dd8833;
+}
+
+.control-btn.stop-btn {
+  background-color: #ff8844;
+  color: white;
+}
+
+.control-btn.stop-btn:hover:not(:disabled) {
   background-color: #cc6633;
 }
 
-.stop-btn:disabled {
+.control-btn.stop-btn:disabled {
   background-color: #555;
   color: #888;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.pause-btn {
-  padding: 10px 20px;
-  background-color: #ffaa44;
+.control-btn.clear-btn {
+  background-color: #ff4444;
+  color: white;
+}
+
+.control-btn.clear-btn:hover {
+  background-color: #cc0000;
+}
+
+.control-btn.view-btn {
+  background-color: #61dafb;
   color: #1e1e1e;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: background-color 0.2s;
 }
 
-.pause-btn:hover {
-  background-color: #dd8833;
+.control-btn.view-btn:hover {
+  background-color: #4fa8c5;
 }

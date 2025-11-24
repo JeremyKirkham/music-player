@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
+import NoteEditModal from './components/NoteEditModal'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
 import {
@@ -24,8 +25,9 @@ function App() {
     createEmptyScore({ numerator: 4, denominator: 4 })
   )
   const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
-  const [currentClef, setCurrentClef] = useState<'treble' | 'bass'>('treble')
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
+  const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
@@ -349,7 +351,7 @@ function App() {
         notes: [
           {
             ...parsedNote,
-            clef: currentClef,
+            clef: 'treble',
           },
         ],
         position,
@@ -383,40 +385,98 @@ function App() {
     })
   }
 
+  // Handle note click to open edit modal
+  const handleNoteClick = (event: MusicalEvent) => {
+    setSelectedEvent(event)
+    setIsNoteEditModalOpen(true)
+  }
+
+  // Handle saving updated note
+  const handleSaveNote = (updatedEvent: MusicalEvent) => {
+    setMusicScore(currentScore => {
+      // Find and replace the event with the updated one
+      const updatedEvents = currentScore.events.map(event =>
+        event.id === updatedEvent.id ? updatedEvent : event
+      )
+
+      // Create a temporary score with updated events
+      let tempScore: MusicScore = {
+        ...currentScore,
+        events: updatedEvents,
+      }
+
+      // Recalculate all positions and measures based on new durations
+      tempScore = recalculateScoreForTimeSignature(tempScore, currentScore.timeSignature)
+
+      // Recalculate beam groups
+      const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
+        tempScore.events,
+        currentScore.timeSignature
+      )
+
+      // Update the score with beam groups
+      const newScore: MusicScore = {
+        ...tempScore,
+        events: eventsWithBeams,
+        beamGroups,
+        measures: tempScore.measures.map(measure => ({
+          ...measure,
+          beamGroups: beamGroups
+            .filter(bg => {
+              const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
+              return firstEvent?.position.measureIndex === measure.index
+            })
+            .map(bg => bg.id),
+        })),
+      }
+
+      return newScore
+    })
+  }
+
+  // Handle deleting a note
+  const handleDeleteNote = (eventId: string) => {
+    setMusicScore(currentScore => {
+      // Remove the event
+      let newScore = removeEventFromScore(currentScore, eventId)
+
+      // Recalculate all positions and measures for remaining events
+      newScore = recalculateScoreForTimeSignature(newScore, currentScore.timeSignature)
+
+      // Recalculate beam groups
+      const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+        newScore.events,
+        currentScore.timeSignature
+      )
+
+      newScore = {
+        ...newScore,
+        events: updatedEvents,
+        beamGroups,
+        measures: newScore.measures.map(measure => ({
+          ...measure,
+          beamGroups: beamGroups
+            .filter(bg => {
+              const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+              return firstEvent?.position.measureIndex === measure.index
+            })
+            .map(bg => bg.id),
+        })),
+      }
+
+      return newScore
+    })
+  }
+
   return (
     <div className="app">
-      <div className="header">
+      <div className="title-bar">
         <h1>Music Player</h1>
-        <div className="header-controls">
-          <div className="duration-selector">
-            <label htmlFor="duration">Duration: </label>
-            <select
-              id="duration"
-              value={currentDuration}
-              onChange={(e) => setCurrentDuration(e.target.value as NoteDuration)}
-              className="duration-dropdown"
-            >
-              <option value="whole">Whole</option>
-              <option value="half">Half</option>
-              <option value="quarter">Quarter</option>
-              <option value="eighth">Eighth</option>
-              <option value="sixteenth">Sixteenth</option>
-            </select>
-          </div>
-          <div className="clef-selector">
-            <label htmlFor="clef">Clef: </label>
-            <select
-              id="clef"
-              value={currentClef}
-              onChange={(e) => setCurrentClef(e.target.value as 'treble' | 'bass')}
-              className="clef-dropdown"
-            >
-              <option value="treble">Treble</option>
-              <option value="bass">Bass</option>
-            </select>
-          </div>
-          <div className="time-signature-selector">
-            <label htmlFor="time-signature">Time Signature: </label>
+      </div>
+      <div className="menu-bar">
+        <div className="menu-section">
+          <div className="control-group">
+            <label htmlFor="time-signature">Time Signature:</label>
             <select
               id="time-signature"
               value={`${musicScore.timeSignature.numerator}/${musicScore.timeSignature.denominator}`}
@@ -424,7 +484,7 @@ function App() {
                 const [numerator, denominator] = e.target.value.split('/').map(Number)
                 updateTimeSignature({ numerator, denominator })
               }}
-              className="time-sig-dropdown"
+              className="control-select"
             >
               <option value="2/4">2/4</option>
               <option value="3/4">3/4</option>
@@ -434,14 +494,16 @@ function App() {
               <option value="7/8">7/8</option>
             </select>
           </div>
-          <button onClick={clearScore} className="clear-btn">Clear Notes</button>
-          <button onClick={stopPlayback} className="stop-btn" disabled={!isPlaying && !isPaused}>
-            Stop
-          </button>
-          <button onClick={togglePlayback} className={isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}>
+        </div>
+        <div className="menu-section">
+          <button onClick={togglePlayback} className={`control-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}>
             {isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
           </button>
-          <button onClick={() => setIsMusicModalOpen(true)} className="debug-btn">
+          <button onClick={stopPlayback} className="control-btn stop-btn" disabled={!isPlaying && !isPaused}>
+            Stop
+          </button>
+          <button onClick={clearScore} className="control-btn clear-btn">Clear</button>
+          <button onClick={() => setIsMusicModalOpen(true)} className="control-btn view-btn">
             View Score
           </button>
         </div>
@@ -449,16 +511,27 @@ function App() {
       <MusicalStaff
         musicScore={musicScore}
         activeEventIds={activeEventIds}
+        onNoteClick={handleNoteClick}
       />
       <Keyboard
         onNotePlay={handleNotePlay}
         activeNotes={activeNotes}
+        currentDuration={currentDuration}
+        onDurationChange={setCurrentDuration}
       />
       <MusicModal
         isOpen={isMusicModalOpen}
         onClose={() => setIsMusicModalOpen(false)}
         musicScore={musicScore}
         onLoadScore={handleLoadScore}
+      />
+      <NoteEditModal
+        key={selectedEvent?.id}
+        isOpen={isNoteEditModalOpen}
+        onClose={() => setIsNoteEditModalOpen(false)}
+        event={selectedEvent}
+        onSave={handleSaveNote}
+        onDelete={handleDeleteNote}
       />
     </div>
   )

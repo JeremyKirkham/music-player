@@ -2,6 +2,19 @@
   position: absolute;
 }
 
+.note-wrapper.clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.note-wrapper.clickable:hover {
+  transform: scale(1.1);
+}
+
+.note-wrapper.clickable:hover .note-head {
+  filter: drop-shadow(0 0 4px #61dafb);
+}
+
 .note-group {
   position: absolute;
   display: flex;
