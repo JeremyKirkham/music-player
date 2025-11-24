@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './LoadSongModal.css'
 import type { MusicScore } from '../types/music'
+import SheetMusicUploadModal from './SheetMusicUploadModal'
 
 interface LoadSongModalProps {
   isOpen: boolean
@@ -22,6 +23,7 @@ const availableSongs: SongOption[] = [
 const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => {
   const [selectedSong, setSelectedSong] = useState<string>('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isSheetMusicModalOpen, setIsSheetMusicModalOpen] = useState(false)
 
   // Handle loading a song
   const handleLoadSong = async () => {
@@ -45,6 +47,23 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Handle opening the sheet music import modal
+  const handleOpenSheetMusicModal = () => {
+    setIsSheetMusicModalOpen(true)
+  }
+
+  // Handle closing the sheet music import modal
+  const handleCloseSheetMusicModal = () => {
+    setIsSheetMusicModalOpen(false)
+  }
+
+  // Handle importing a score from sheet music
+  const handleImportScore = (score: MusicScore) => {
+    onLoadScore(score)
+    setIsSheetMusicModalOpen(false)
+    onClose()
   }
 
   // Handle escape key to close modal
@@ -90,6 +109,14 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
               ))}
             </select>
           </div>
+          <div className="separator">
+            <span>or</span>
+          </div>
+          <div className="import-section">
+            <button onClick={handleOpenSheetMusicModal} className="btn-import">
+              Import from Screenshot
+            </button>
+          </div>
         </div>
         <div className="modal-footer">
           <button onClick={onClose} className="btn-cancel">
@@ -104,6 +131,11 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
           </button>
         </div>
       </div>
+      <SheetMusicUploadModal
+        isOpen={isSheetMusicModalOpen}
+        onClose={handleCloseSheetMusicModal}
+        onImport={handleImportScore}
+      />
     </div>
   )
 }
