@@ -10,7 +10,7 @@ interface Note {
 }
 
 interface KeyboardProps {
-  onNotePlay: (note: string) => void
+  onNotePlay: (note: string, clef: 'treble' | 'bass') => void
   activeNotes?: Set<string>
   currentDuration: NoteDuration
   onDurationChange: (duration: NoteDuration) => void
@@ -21,6 +21,7 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
   const keyboardRef = useRef<HTMLDivElement>(null)
   const onNotePlayRef = useRef(onNotePlay)
   const [keyDimensions, setKeyDimensions] = useState({ whiteKeyWidth: 60, blackKeyWidth: 40 })
+  const [selectedClef, setSelectedClef] = useState<'treble' | 'bass'>('treble')
 
   // Keep the ref updated with the latest callback
   useEffect(() => {
@@ -72,8 +73,8 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
     }
   }, [])
 
-  // Note frequencies (C4 to C7 - 3 octaves)
-  const notes: Note[] = useMemo(() => [
+  // Note frequencies for treble clef (C4 to C7 - 3 octaves)
+  const trebleNotes: Note[] = useMemo(() => [
     // First octave (C4 to B4)
     { name: 'C4', frequency: 261.63, key: 'a' },
     { name: 'C#4', frequency: 277.18, key: 'w', isBlack: true },
@@ -116,6 +117,53 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
     { name: 'C7', frequency: 2093.00, key: ']' },
   ], [])
 
+  // Note frequencies for bass clef (C2 to C5 - 3 octaves)
+  const bassNotes: Note[] = useMemo(() => [
+    // First octave (C2 to B2)
+    { name: 'C2', frequency: 65.41, key: 'a' },
+    { name: 'C#2', frequency: 69.30, key: 'w', isBlack: true },
+    { name: 'D2', frequency: 73.42, key: 's' },
+    { name: 'D#2', frequency: 77.78, key: 'e', isBlack: true },
+    { name: 'E2', frequency: 82.41, key: 'd' },
+    { name: 'F2', frequency: 87.31, key: 'f' },
+    { name: 'F#2', frequency: 92.50, key: 't', isBlack: true },
+    { name: 'G2', frequency: 98.00, key: 'g' },
+    { name: 'G#2', frequency: 103.83, key: 'y', isBlack: true },
+    { name: 'A2', frequency: 110.00, key: 'h' },
+    { name: 'A#2', frequency: 116.54, key: 'u', isBlack: true },
+    { name: 'B2', frequency: 123.47, key: 'j' },
+    // Second octave (C3 to B3)
+    { name: 'C3', frequency: 130.81, key: 'k' },
+    { name: 'C#3', frequency: 138.59, key: 'o', isBlack: true },
+    { name: 'D3', frequency: 146.83, key: 'l' },
+    { name: 'D#3', frequency: 155.56, key: 'p', isBlack: true },
+    { name: 'E3', frequency: 164.81, key: ';' },
+    { name: 'F3', frequency: 174.61, key: 'z' },
+    { name: 'F#3', frequency: 185.00, key: 'x', isBlack: true },
+    { name: 'G3', frequency: 196.00, key: 'c' },
+    { name: 'G#3', frequency: 207.65, key: 'v', isBlack: true },
+    { name: 'A3', frequency: 220.00, key: 'b' },
+    { name: 'A#3', frequency: 233.08, key: 'n', isBlack: true },
+    { name: 'B3', frequency: 246.94, key: 'm' },
+    // Third octave (C4 to C5)
+    { name: 'C4', frequency: 261.63, key: ',' },
+    { name: 'C#4', frequency: 277.18, key: '1', isBlack: true },
+    { name: 'D4', frequency: 293.66, key: '.' },
+    { name: 'D#4', frequency: 311.13, key: '2', isBlack: true },
+    { name: 'E4', frequency: 329.63, key: '/' },
+    { name: 'F4', frequency: 349.23, key: 'q' },
+    { name: 'F#4', frequency: 369.99, key: '3', isBlack: true },
+    { name: 'G4', frequency: 392.00, key: 'r' },
+    { name: 'G#4', frequency: 415.30, key: '4', isBlack: true },
+    { name: 'A4', frequency: 440.00, key: 'i' },
+    { name: 'A#4', frequency: 466.16, key: '5', isBlack: true },
+    { name: 'B4', frequency: 493.88, key: '[' },
+    { name: 'C5', frequency: 523.25, key: ']' },
+  ], [])
+
+  // Select notes based on selected clef
+  const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
+
   const playNote = (frequency: number, noteName: string) => {
     if (!audioContextRef.current) return
 
@@ -135,8 +183,8 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
     oscillator.start(audioContext.currentTime)
     oscillator.stop(audioContext.currentTime + 0.5)
 
-    // Use the ref to always call the latest callback
-    onNotePlayRef.current(noteName)
+    // Use the ref to always call the latest callback with the selected clef
+    onNotePlayRef.current(noteName, selectedClef)
   }
 
   // Handle keyboard events
@@ -164,7 +212,7 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [notes])
+  }, [notes, selectedClef])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
@@ -177,12 +225,19 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
 
     // Map note names to their position after which white key (0-indexed)
     // The black key should be centered at the right edge of this white key
-    const positionMap: { [key: string]: number } = {
+    const treblePositionMap: { [key: string]: number } = {
       'C#4': 0, 'D#4': 1, 'F#4': 3, 'G#4': 4, 'A#4': 5,
       'C#5': 7, 'D#5': 8, 'F#5': 10, 'G#5': 11, 'A#5': 12,
       'C#6': 14, 'D#6': 15, 'F#6': 17, 'G#6': 18, 'A#6': 19,
     }
 
+    const bassPositionMap: { [key: string]: number } = {
+      'C#2': 0, 'D#2': 1, 'F#2': 3, 'G#2': 4, 'A#2': 5,
+      'C#3': 7, 'D#3': 8, 'F#3': 10, 'G#3': 11, 'A#3': 12,
+      'C#4': 14, 'D#4': 15, 'F#4': 17, 'G#4': 18, 'A#4': 19,
+    }
+
+    const positionMap = selectedClef === 'treble' ? treblePositionMap : bassPositionMap
     const whiteKeyIndex = positionMap[noteName] || 0
     // Calculate the right edge of the white key and center the black key on it
     // Right edge = padding + (whiteKeyIndex + 1) * whiteKeyWidth + whiteKeyIndex * gap
@@ -194,20 +249,34 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
     <div className="keyboard-container">
       <div className="keyboard-header">
         <h2>Piano Keyboard</h2>
-        <div className="duration-control">
-          <label htmlFor="keyboard-duration">Duration:</label>
-          <select
-            id="keyboard-duration"
-            value={currentDuration}
-            onChange={(e) => onDurationChange(e.target.value as NoteDuration)}
-            className="duration-select"
-          >
-            <option value="whole">Whole</option>
-            <option value="half">Half</option>
-            <option value="quarter">Quarter</option>
-            <option value="eighth">Eighth</option>
-            <option value="sixteenth">Sixteenth</option>
-          </select>
+        <div className="keyboard-controls">
+          <div className="clef-control">
+            <label htmlFor="keyboard-clef">Clef:</label>
+            <select
+              id="keyboard-clef"
+              value={selectedClef}
+              onChange={(e) => setSelectedClef(e.target.value as 'treble' | 'bass')}
+              className="clef-select"
+            >
+              <option value="treble">Treble</option>
+              <option value="bass">Bass</option>
+            </select>
+          </div>
+          <div className="duration-control">
+            <label htmlFor="keyboard-duration">Duration:</label>
+            <select
+              id="keyboard-duration"
+              value={currentDuration}
+              onChange={(e) => onDurationChange(e.target.value as NoteDuration)}
+              className="duration-select"
+            >
+              <option value="whole">Whole</option>
+              <option value="half">Half</option>
+              <option value="quarter">Quarter</option>
+              <option value="eighth">Eighth</option>
+              <option value="sixteenth">Sixteenth</option>
+            </select>
+          </div>
         </div>
       </div>
       <div className="keyboard" ref={keyboardRef}>
