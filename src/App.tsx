@@ -422,7 +422,7 @@ function App() {
   }, [togglePlayback, musicScore, historyIndex, history, undo, redo, updateScoreWithHistory])
 
   // Handle note play from keyboard
-  const handleNotePlay = (noteName: string) => {
+  const handleNotePlay = (noteName: string, clef: 'treble' | 'bass') => {
     const position = getCurrentPosition(musicScore, musicScore.timeSignature)
     const parsedNote = parseNoteString(noteName)
 
@@ -433,7 +433,7 @@ function App() {
       notes: [
         {
           ...parsedNote,
-          clef: 'treble',
+          clef: clef,
         },
       ],
       position,
