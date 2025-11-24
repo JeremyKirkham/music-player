@@ -1,0 +1,144 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background-color: #1e1e1e;
+  border-radius: 10px;
+  border: 2px solid #61dafb;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 2px solid #61dafb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #61dafb;
+  font-size: 1.5rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #61dafb;
+  font-size: 2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  transition: background-color 0.2s;
+}
+
+.close-button:hover {
+  background-color: rgba(97, 218, 251, 0.1);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 2px solid #61dafb;
+}
+
+.load-song-modal {
+  max-width: 500px;
+  width: 90%;
+}
+
+.song-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.song-selector label {
+  font-size: 1rem;
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.song-dropdown {
+  padding: 10px;
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 5px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.song-dropdown:hover {
+  border-color: #61dafb;
+}
+
+.song-dropdown:focus {
+  outline: none;
+  border-color: #61dafb;
+  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.1);
+}
+
+.btn-cancel,
+.btn-load {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.btn-cancel {
+  background-color: #444;
+  color: #fff;
+}
+
+.btn-cancel:hover {
+  background-color: #555;
+}
+
+.btn-load {
+  background-color: #61dafb;
+  color: #1e1e1e;
+  font-weight: bold;
+}
+
+.btn-load:hover:not(:disabled) {
+  background-color: #4fa8c5;
+}
+
+.btn-load:disabled {
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

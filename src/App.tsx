@@ -3,6 +3,7 @@ import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
 import NoteEditModal from './components/NoteEditModal'
+import LoadSongModal from './components/LoadSongModal'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
 import {
@@ -46,6 +47,7 @@ function App() {
   }, [])
 
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
+  const [isLoadSongModalOpen, setIsLoadSongModalOpen] = useState(false)
   const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -597,6 +599,9 @@ function App() {
             Stop
           </button>
           <button onClick={handleClearScore} className="control-btn clear-btn">Clear</button>
+          <button onClick={() => setIsLoadSongModalOpen(true)} className="control-btn load-btn">
+            Load Song
+          </button>
           <button onClick={() => setIsMusicModalOpen(true)} className="control-btn view-btn">
             View Score
           </button>
@@ -617,6 +622,10 @@ function App() {
         isOpen={isMusicModalOpen}
         onClose={() => setIsMusicModalOpen(false)}
         musicScore={musicScore}
+      />
+      <LoadSongModal
+        isOpen={isLoadSongModalOpen}
+        onClose={() => setIsLoadSongModalOpen(false)}
         onLoadScore={handleLoadScore}
       />
       <NoteEditModal

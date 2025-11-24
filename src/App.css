@@ -138,6 +138,15 @@
   background-color: #cc0000;
 }
 
+.control-btn.load-btn {
+  background-color: #9b59b6;
+  color: white;
+}
+
+.control-btn.load-btn:hover {
+  background-color: #8e44ad;
+}
+
 .control-btn.view-btn {
   background-color: #61dafb;
   color: #1e1e1e;
