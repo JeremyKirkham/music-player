@@ -43,11 +43,12 @@ export function formatNoteToString(note: Note): string {
 /**
  * Initialize empty score
  */
-export function createEmptyScore(timeSignature: TimeSignature): MusicScore {
+export function createEmptyScore(timeSignature: TimeSignature, tempo: number = 120): MusicScore {
   const now = new Date().toISOString()
 
   return {
     metadata: {
+      tempo,
       createdAt: now,
       modifiedAt: now,
       version: '1.0.0',
