@@ -30,7 +30,9 @@ const MusicModal = ({ isOpen, onClose, musicScore, onLoadScore }: MusicModalProp
 
     setIsLoading(true)
     try {
-      const response = await fetch(`/songs/${selectedSong}`)
+      // Use import.meta.env.BASE_URL to get the correct base path
+      const basePath = import.meta.env.BASE_URL || '/'
+      const response = await fetch(`${basePath}songs/${selectedSong}`)
       if (!response.ok) {
         throw new Error('Failed to load song')
       }
