@@ -1,6 +1,16 @@
 .sheet-music-upload-modal {
   max-width: 800px;
   width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.sheet-music-upload-modal .modal-body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
 }
 
 .upload-zone {
@@ -73,11 +83,17 @@
   border-radius: 4px;
 }
 
-.btn-change-image {
-  align-self: center;
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-change-image,
+.btn-process,
+.btn-toggle-view {
   padding: 10px 20px;
-  background-color: #444;
-  color: #fff;
   border: none;
   border-radius: 5px;
   cursor: pointer;
@@ -85,20 +101,121 @@
   transition: all 0.2s;
 }
 
+.btn-change-image {
+  background-color: #444;
+  color: #fff;
+}
+
 .btn-change-image:hover {
   background-color: #555;
 }
 
-.ocr-placeholder {
-  padding: 20px;
-  text-align: center;
+.btn-process {
+  background-color: #61dafb;
+  color: #1e1e1e;
+  font-weight: 500;
+}
+
+.btn-process:hover:not(:disabled) {
+  background-color: #4fa8c5;
+}
+
+.btn-process:disabled {
+  background-color: #555;
   color: #888;
+  cursor: not-allowed;
+}
+
+.btn-toggle-view {
+  background-color: #845ef7;
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-toggle-view:hover {
+  background-color: #7048e8;
+}
+
+.error-message {
+  padding: 15px;
+  background-color: rgba(255, 68, 68, 0.1);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #ff6b6b;
+}
+
+.error-message p {
+  margin: 0;
+}
+
+.ocr-results {
+  padding: 20px;
   background-color: #2d2d2d;
   border-radius: 8px;
   border: 1px solid #444;
 }
 
-.ocr-placeholder p {
-  margin: 8px 0;
-  line-height: 1.6;
+.ocr-results h3 {
+  margin: 0 0 15px 0;
+  color: #61dafb;
+  font-size: 1.1rem;
+}
+
+.ocr-results h4 {
+  margin: 15px 0 10px 0;
+  color: #e0e0e0;
+  font-size: 1rem;
+}
+
+.results-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.results-summary p {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 0.95rem;
+}
+
+.results-summary strong {
+  color: #61dafb;
+}
+
+.detected-notes {
+  margin-top: 15px;
+}
+
+.notes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.note-item {
+  padding: 8px 12px;
+  background-color: #1e1e1e;
+  border: 1px solid #61dafb;
+  border-radius: 5px;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+.btn-import-score {
+  padding: 10px 20px;
+  background-color: #61dafb;
+  color: #1e1e1e;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.btn-import-score:hover {
+  background-color: #4fa8c5;
 }

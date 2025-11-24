@@ -34,4 +34,5 @@ export interface OcrResult {
   timeSignature?: { numerator: number; denominator: number }
   clef?: 'treble' | 'bass'
   confidence: number             // Overall confidence
+  annotatedImageUrl?: string     // Image with visual annotations
 }
