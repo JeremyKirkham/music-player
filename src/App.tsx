@@ -22,14 +22,29 @@ import {
 } from './utils/playbackUtilities'
 function App() {
   const [musicScore, setMusicScore] = useState<MusicScore>(() =>
-    createEmptyScore({ numerator: 4, denominator: 4 })
+    createEmptyScore({ numerator: 4, denominator: 4 }, 120)
   )
   const [history, setHistory] = useState<MusicScore[]>([
-    createEmptyScore({ numerator: 4, denominator: 4 })
+    createEmptyScore({ numerator: 4, denominator: 4 }, 120)
   ])
   const [historyIndex, setHistoryIndex] = useState<number>(0)
   const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
-  const [tempo, setTempo] = useState<number>(120) // BPM
+  const [tempoState, setTempoState] = useState<number>(120) // BPM
+  const tempo = tempoState
+
+  // Custom setter that updates both tempo and score metadata
+  const setTempo = useCallback((newTempo: number) => {
+    setTempoState(newTempo)
+    setMusicScore(prev => ({
+      ...prev,
+      metadata: {
+        ...prev.metadata,
+        tempo: newTempo,
+        modifiedAt: new Date().toISOString(),
+      },
+    }))
+  }, [])
+
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
   const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
@@ -275,32 +290,42 @@ function App() {
   }, [isPlaying, isPaused, startPlayback, pausePlayback, resumePlayback])
 
   // Helper to update score with history tracking
-  const updateScoreWithHistory = (newScore: MusicScore) => {
+  const updateScoreWithHistory = useCallback((newScore: MusicScore) => {
     setMusicScore(newScore)
     // Truncate any future history if we're not at the end
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(newScore)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-  }
+    setHistory(prevHistory => {
+      const newHistory = prevHistory.slice(0, historyIndex + 1)
+      newHistory.push(newScore)
+      return newHistory
+    })
+    setHistoryIndex(prev => prev + 1)
+  }, [historyIndex])
 
   // Undo function
-  const undo = () => {
+  const undo = useCallback(() => {
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1
       setHistoryIndex(newIndex)
       setMusicScore(history[newIndex])
+      // Sync tempo from history
+      if (history[newIndex].metadata.tempo) {
+        setTempo(history[newIndex].metadata.tempo!)
+      }
     }
-  }
+  }, [historyIndex, history, setTempo])
 
   // Redo function
-  const redo = () => {
+  const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1
       setHistoryIndex(newIndex)
       setMusicScore(history[newIndex])
+      // Sync tempo from history
+      if (history[newIndex].metadata.tempo) {
+        setTempo(history[newIndex].metadata.tempo!)
+      }
     }
-  }
+  }, [historyIndex, history, setTempo])
 
   // Update time signature
   const updateTimeSignature = (timeSignature: TimeSignature) => {
@@ -333,7 +358,7 @@ function App() {
 
   // Clear all notes
   const clearScore = () => {
-    const newScore = createEmptyScore(musicScore.timeSignature)
+    const newScore = createEmptyScore(musicScore.timeSignature, tempo)
     updateScoreWithHistory(newScore)
   }
 
@@ -349,6 +374,10 @@ function App() {
     // Stop playback if currently playing
     if (isPlaying) {
       stopPlayback()
+    }
+    // Sync tempo from loaded score if it has one
+    if (score.metadata.tempo) {
+      setTempo(score.metadata.tempo)
     }
     updateScoreWithHistory(score)
   }
@@ -387,7 +416,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [togglePlayback, musicScore, historyIndex, history])
+  }, [togglePlayback, musicScore, historyIndex, history, undo, redo, updateScoreWithHistory])
 
   // Handle note play from keyboard
   const handleNotePlay = (noteName: string) => {
@@ -561,7 +590,7 @@ function App() {
           </div>
         </div>
         <div className="menu-section">
-          <button onClick={togglePlayback} className={`control-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}>
+          <button onClick={togglePlayback} className={`control-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`} disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}>
             {isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
           </button>
           <button onClick={stopPlayback} className="control-btn stop-btn" disabled={!isPlaying && !isPaused}>
