@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import './MusicModal.css'
 import type { MusicScore } from '../types/music'
 
@@ -6,47 +6,9 @@ interface MusicModalProps {
   isOpen: boolean
   onClose: () => void
   musicScore: MusicScore
-  onLoadScore?: (score: MusicScore) => void
 }
 
-interface SongOption {
-  name: string
-  file: string
-}
-
-const availableSongs: SongOption[] = [
-  { name: 'Twinkle Twinkle Little Star', file: 'twinkle-twinkle.json' },
-  { name: 'C Major Scale', file: 'c-major-scale.json' },
-  { name: 'Simple Chord Progression', file: 'simple-chord.json' },
-]
-
-const MusicModal = ({ isOpen, onClose, musicScore, onLoadScore }: MusicModalProps) => {
-  const [selectedSong, setSelectedSong] = useState<string>('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  // Handle loading a song
-  const handleLoadSong = async () => {
-    if (!selectedSong || !onLoadScore) return
-
-    setIsLoading(true)
-    try {
-      // Use import.meta.env.BASE_URL to get the correct base path
-      const basePath = import.meta.env.BASE_URL || '/'
-      const response = await fetch(`${basePath}songs/${selectedSong}`)
-      if (!response.ok) {
-        throw new Error('Failed to load song')
-      }
-      const score: MusicScore = await response.json()
-      onLoadScore(score)
-      alert(`Loaded: ${availableSongs.find(s => s.file === selectedSong)?.name}`)
-    } catch (error) {
-      console.error('Error loading song:', error)
-      alert('Failed to load song. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
+const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
   // Handle escape key to close modal
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -89,31 +51,6 @@ const MusicModal = ({ isOpen, onClose, musicScore, onLoadScore }: MusicModalProp
           <button className="debug-modal-close" onClick={onClose}>×</button>
         </div>
         <div className="debug-modal-body">
-          {onLoadScore && (
-            <div className="debug-song-selector">
-              <label htmlFor="song-select">Load Demo Song: </label>
-              <select
-                id="song-select"
-                value={selectedSong}
-                onChange={(e) => setSelectedSong(e.target.value)}
-                className="song-dropdown"
-              >
-                <option value="">-- Select a song --</option>
-                {availableSongs.map((song) => (
-                  <option key={song.file} value={song.file}>
-                    {song.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                className="load-song-btn"
-                onClick={handleLoadSong}
-                disabled={!selectedSong || isLoading}
-              >
-                {isLoading ? 'Loading...' : 'Load'}
-              </button>
-            </div>
-          )}
           <div className="debug-stats">
             <div className="debug-stat">
               <span className="debug-stat-label">Events:</span>
