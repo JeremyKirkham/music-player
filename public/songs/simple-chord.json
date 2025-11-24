@@ -15,7 +15,34 @@
   "measures": [
     {
       "index": 0,
-      "events": ["e1", "e2", "e3", "e4"],
+      "events": ["e1"],
+      "beamGroups": [],
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "index": 1,
+      "events": ["e2"],
+      "beamGroups": [],
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "index": 2,
+      "events": ["e3"],
+      "beamGroups": [],
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      }
+    },
+    {
+      "index": 3,
+      "events": ["e4"],
       "beamGroups": [],
       "timeSignature": {
         "numerator": 4,
@@ -72,8 +99,8 @@
         }
       ],
       "position": {
-        "measureIndex": 0,
-        "beatPosition": 4
+        "measureIndex": 1,
+        "beatPosition": 0
       }
     },
     {
@@ -98,8 +125,8 @@
         }
       ],
       "position": {
-        "measureIndex": 0,
-        "beatPosition": 8
+        "measureIndex": 2,
+        "beatPosition": 0
       }
     },
     {
@@ -124,8 +151,8 @@
         }
       ],
       "position": {
-        "measureIndex": 0,
-        "beatPosition": 12
+        "measureIndex": 3,
+        "beatPosition": 0
       }
     }
   ],
