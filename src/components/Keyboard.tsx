@@ -275,7 +275,6 @@ const Keyboard = ({
       <div className="keyboard-header">
         <div className="keyboard-controls">
           <div className="clef-control">
-            <label htmlFor="keyboard-clef">Clef:</label>
             <Select
               value={selectedClef}
               onValueChange={(value) => setSelectedClef(value as 'treble' | 'bass')}
@@ -291,7 +290,6 @@ const Keyboard = ({
             </Select>
           </div>
           <div className="duration-control">
-            <label htmlFor="keyboard-duration">Duration:</label>
             <Select
               value={currentDuration}
               onValueChange={(value) => onDurationChange(value as NoteDuration)}
