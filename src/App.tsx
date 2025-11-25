@@ -4,6 +4,8 @@ import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
 import LoadSongModal from './components/LoadSongModal'
 import TimeSignatureModal from './components/TimeSignatureModal'
+import NoteEditModal from './components/NoteEditModal'
+import NoteFAB from './components/NoteFAB'
 import MenuBar from './components/MenuBar'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
@@ -57,6 +59,9 @@ function App() {
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set())
   const [showTrebleClef, setShowTrebleClef] = useState(true)
   const [showBassClef, setShowBassClef] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
+  const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null)
+  const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const scheduledTimeoutsRef = useRef<number[]>([])
@@ -519,6 +524,201 @@ function App() {
     updateScoreWithHistory(newScore)
   }
 
+  // Handle note click to show FAB buttons
+  const handleNoteClick = (event: MusicalEvent, element: HTMLElement) => {
+    setSelectedEvent(event)
+    
+    // Get the clicked element's position
+    const rect = element.getBoundingClientRect()
+    
+    // Position FAB buttons below the note, centered
+    setFabPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 20, // 20px below the note
+    })
+  }
+
+  // Close FAB buttons
+  const handleCloseFAB = () => {
+    setSelectedEvent(null)
+    setFabPosition(null)
+  }
+
+  // Handle delete from FAB
+  const handleDeleteFromFAB = () => {
+    if (!selectedEvent) return
+    
+    const newScore = removeEventFromScore(musicScore, selectedEvent.id)
+    
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+      newScore.events,
+      newScore.timeSignature
+    )
+
+    const finalScore = {
+      ...newScore,
+      events: updatedEvents,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
+
+    updateScoreWithHistory(finalScore)
+    handleCloseFAB()
+  }
+
+  // Handle change duration from FAB
+  const handleChangeDurationFromFAB = (newDuration: NoteDuration) => {
+    if (!selectedEvent) return
+    
+    // Update the event's duration
+    const updatedEvents = musicScore.events.map(e =>
+      e.id === selectedEvent.id ? { ...e, duration: newDuration } : e
+    )
+
+    // Create a temporary score with updated events
+    let newScore: MusicScore = {
+      ...musicScore,
+      events: updatedEvents,
+      metadata: {
+        ...musicScore.metadata,
+        modifiedAt: new Date().toISOString(),
+      },
+    }
+
+    // Recalculate positions for all events based on their new durations
+    newScore = recalculateScoreForTimeSignature(newScore, musicScore.timeSignature)
+
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
+      newScore.events,
+      musicScore.timeSignature
+    )
+
+    newScore = {
+      ...newScore,
+      events: eventsWithBeams,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
+
+    updateScoreWithHistory(newScore)
+  }
+
+  // Handle change accidental from FAB
+  const handleChangeAccidentalFromFAB = (newAccidental: 'sharp' | 'flat' | 'natural' | undefined) => {
+    if (!selectedEvent) return
+    
+    // Update the event's accidental (only for the first note if it's a chord)
+    const updatedEvents = musicScore.events.map(e => {
+      if (e.id === selectedEvent.id && e.notes && e.notes.length > 0) {
+        const updatedNotes = e.notes.map((note, index) => 
+          index === 0 ? { ...note, accidental: newAccidental } : note
+        )
+        return { ...e, notes: updatedNotes }
+      }
+      return e
+    })
+
+    const newScore: MusicScore = {
+      ...musicScore,
+      events: updatedEvents,
+      metadata: {
+        ...musicScore.metadata,
+        modifiedAt: new Date().toISOString(),
+      },
+    }
+
+    updateScoreWithHistory(newScore)
+  }
+
+  // Handle save from NoteEditModal
+  const handleSaveNoteEdit = (updatedEvent: MusicalEvent) => {
+    const updatedEvents = musicScore.events.map(e =>
+      e.id === updatedEvent.id ? updatedEvent : e
+    )
+
+    // Create a temporary score with updated events
+    let newScore: MusicScore = {
+      ...musicScore,
+      events: updatedEvents,
+      metadata: {
+        ...musicScore.metadata,
+        modifiedAt: new Date().toISOString(),
+      },
+    }
+
+    // Recalculate positions for all events in case duration changed
+    newScore = recalculateScoreForTimeSignature(newScore, musicScore.timeSignature)
+
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
+      newScore.events,
+      musicScore.timeSignature
+    )
+
+    newScore = {
+      ...newScore,
+      events: eventsWithBeams,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
+
+    updateScoreWithHistory(newScore)
+  }
+
+  // Handle delete from NoteEditModal
+  const handleDeleteNote = (eventId: string) => {
+    const newScore = removeEventFromScore(musicScore, eventId)
+    
+    // Recalculate beam groups
+    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
+      newScore.events,
+      newScore.timeSignature
+    )
+
+    const finalScore = {
+      ...newScore,
+      events: updatedEvents,
+      beamGroups,
+      measures: newScore.measures.map(measure => ({
+        ...measure,
+        beamGroups: beamGroups
+          .filter(bg => {
+            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            return firstEvent?.position.measureIndex === measure.index
+          })
+          .map(bg => bg.id),
+      })),
+    }
+
+    updateScoreWithHistory(finalScore)
+  }
+
   return (
     <div className="app">
       <MenuBar
@@ -542,6 +742,7 @@ function App() {
         showBassClef={showBassClef}
         setShowBassClef={setShowBassClef}
         onNoteDrag={handleNoteDrag}
+        onNoteClick={handleNoteClick}
       />
       <Keyboard
         onNotePlay={handleNotePlay}
@@ -567,6 +768,24 @@ function App() {
         currentTimeSignature={musicScore.timeSignature}
         onSelect={updateTimeSignature}
       />
+      <NoteEditModal
+        isOpen={isNoteEditModalOpen}
+        onClose={() => setIsNoteEditModalOpen(false)}
+        event={selectedEvent}
+        onSave={handleSaveNoteEdit}
+        onDelete={handleDeleteNote}
+      />
+      {fabPosition && selectedEvent && (
+        <NoteFAB
+          onDelete={handleDeleteFromFAB}
+          onChangeDuration={handleChangeDurationFromFAB}
+          onChangeAccidental={handleChangeAccidentalFromFAB}
+          onClose={handleCloseFAB}
+          position={fabPosition}
+          currentDuration={selectedEvent.duration}
+          currentAccidental={selectedEvent.notes?.[0]?.accidental}
+        />
+      )}
     </div>
   )
 }

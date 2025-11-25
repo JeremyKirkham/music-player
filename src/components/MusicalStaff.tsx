@@ -12,6 +12,7 @@ interface MusicalStaffProps {
   showBassClef?: boolean
   setShowBassClef?: (show: boolean) => void
   onNoteDrag?: (event: MusicalEvent, positionChange: number) => void
+  onNoteClick?: (event: MusicalEvent, element: HTMLElement) => void
 }
 
 const MusicalStaff = ({
@@ -23,6 +24,7 @@ const MusicalStaff = ({
   showBassClef = true,
   setShowBassClef,
   onNoteDrag,
+  onNoteClick,
 }: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -168,6 +170,7 @@ const MusicalStaff = ({
             activeEventIds={activeEventIds}
             onTimeSignatureClick={onTimeSignatureClick}
             onNoteDrag={onNoteDrag}
+            onNoteClick={onNoteClick}
           />
         )}
         {showBassClef && (
@@ -177,6 +180,7 @@ const MusicalStaff = ({
             activeEventIds={activeEventIds}
             onTimeSignatureClick={onTimeSignatureClick}
             onNoteDrag={onNoteDrag}
+            onNoteClick={onNoteClick}
           />
         )}
       </div>

@@ -283,7 +283,7 @@ export function changePitchByPositions(note: Note, positionChange: number): Note
   }
   
   // Calculate total position including octave
-  let totalPosition = currentIndex + (note.octave * 7) + positionChange
+  const totalPosition = currentIndex + (note.octave * 7) + positionChange
   
   // Calculate new octave and pitch
   const newOctave = Math.floor(totalPosition / 7)
@@ -323,8 +323,9 @@ export function recalculateScoreForTimeSignature(
     const eventDuration = durationMap[event.duration]
 
     // Check if event fits in current measure
-    if (currentBeatPosition + eventDuration > beatsPerMeasure) {
-      // Move to next measure
+    // If current position + duration exceeds measure, move to next measure
+    if (currentBeatPosition + eventDuration > beatsPerMeasure && currentBeatPosition > 0) {
+      // Move to next measure only if we're not at the start
       currentMeasureIndex++
       currentBeatPosition = 0
     }
@@ -337,12 +338,13 @@ export function recalculateScoreForTimeSignature(
       },
     }
 
+    // Advance position by the event's duration
     currentBeatPosition += eventDuration
 
-    // If we've filled the measure, move to next
-    if (currentBeatPosition >= beatsPerMeasure) {
+    // If we've exactly filled or exceeded the measure, move to next measure
+    while (currentBeatPosition >= beatsPerMeasure) {
+      currentBeatPosition -= beatsPerMeasure
       currentMeasureIndex++
-      currentBeatPosition = 0
     }
 
     return updatedEvent

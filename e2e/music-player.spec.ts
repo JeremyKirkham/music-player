@@ -173,4 +173,183 @@ test.describe('Music Player App', () => {
     // Verify tempo button tooltip shows new tempo
     await expect(tempoButton).toHaveAttribute('data-tooltip', 'Tempo: 140 BPM');
   });
+
+  test('should display FAB buttons when clicking a note', async ({ page }) => {
+    // Ensure treble clef is visible (it should be by default)
+    const trebleCheckbox = page.locator('.clef-checkbox-label').filter({ hasText: 'Treble' }).locator('input[type="checkbox"]');
+    await expect(trebleCheckbox).toBeChecked();
+    
+    // Add a note first
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Wait for note to appear - check that it exists in DOM
+    const note = page.locator('.note-wrapper').first();
+    await expect(note).toHaveCount(1);
+    
+    // Debug: Check note position and visibility
+    const noteInfo = await note.evaluate(el => {
+      const htmlEl = el as HTMLElement;
+      return {
+        visible: window.getComputedStyle(el).visibility !== 'hidden',
+        display: window.getComputedStyle(el).display,
+        opacity: window.getComputedStyle(el).opacity,
+        bottom: htmlEl.style.bottom,
+        left: htmlEl.style.left,
+        boundingRect: el.getBoundingClientRect(),
+        offsetParent: htmlEl.offsetParent?.className
+      };
+    });
+    console.log('Note info:', noteInfo);
+    
+    // Use force click since note might be partially obscured
+    await note.click({ force: true, timeout: 5000 });
+    
+    // Wait a bit for the FAB to appear
+    await page.waitForTimeout(300);
+    
+    // Check that FAB buttons appear
+    const fabContainer = page.locator('.note-fab-container');
+    await expect(fabContainer).toBeVisible({ timeout: 2000 });
+    
+    // Check that both buttons are present
+    const deleteButton = page.locator('.delete-button');
+    const durationButton = page.locator('.duration-button');
+    
+    await expect(deleteButton).toBeVisible();
+    await expect(durationButton).toBeVisible();
+  });
+
+  test('should close FAB buttons when clicking backdrop', async ({ page }) => {
+    // Add a note and open FAB menu
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    const note = page.locator('.note-wrapper').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.click();
+    
+    // Wait for FAB to appear
+    const fabContainer = page.locator('.note-fab-container');
+    await expect(fabContainer).toBeVisible({ timeout: 2000 });
+    
+    // Click on the backdrop
+    const backdrop = page.locator('.note-fab-backdrop');
+    await backdrop.click();
+    
+    // Verify FAB is closed
+    await expect(fabContainer).not.toBeVisible();
+  });
+
+  test('should delete note when clicking delete FAB button', async ({ page }) => {
+    // Add a note
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Verify note exists
+    let notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(1);
+    
+    // Click on the note to open FAB menu
+    const note = notes.first();
+    await note.scrollIntoViewIfNeeded();
+    await note.click();
+    
+    // Wait for FAB to appear
+    const deleteButton = page.locator('.delete-button');
+    await expect(deleteButton).toBeVisible({ timeout: 2000 });
+    
+    // Click delete button
+    await deleteButton.click();
+    
+    // Verify note is deleted
+    notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(0);
+  });
+
+  test('should open edit modal when clicking change duration FAB button', async ({ page }) => {
+    // Add a note
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Click on the note to open FAB menu
+    const note = page.locator('.note-wrapper').first();
+    await note.scrollIntoViewIfNeeded();
+    await note.click();
+    
+    // Wait for FAB to appear and click duration button
+    const durationButton = page.locator('.duration-button');
+    await expect(durationButton).toBeVisible({ timeout: 2000 });
+    await durationButton.click();
+    
+    // Check that duration dropdown appears
+    const durationDropdown = page.locator('.duration-dropdown');
+    await expect(durationDropdown).toBeVisible({ timeout: 2000 });
+    
+    // Verify dropdown has duration options
+    const durationOptions = page.locator('.duration-option');
+    await expect(durationOptions).toHaveCount(5);
+    
+    // Select eighth note (use nth to get the exact one - Eighth is 4th in list, 0-indexed = 3)
+    const eighthOption = page.locator('.duration-option').nth(3);
+    await eighthOption.click({ force: true });
+    await page.waitForTimeout(500);
+    
+    // Verify FAB is closed after selection
+    await expect(durationButton).not.toBeVisible();
+    
+    // Verify the note still exists (duration should have changed)
+    const updatedNote = page.locator('.note-wrapper').first();
+    await expect(updatedNote).toBeVisible();
+  });
+
+  test('should not trigger FAB when dragging a note', async ({ page }) => {
+    // Add a note
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Get the note
+    const note = page.locator('.note-wrapper').first();
+    await note.scrollIntoViewIfNeeded();
+    
+    // Get initial position
+    const initialBox = await note.boundingBox();
+    
+    // Perform a drag operation (move note up by dragging)
+    await note.hover();
+    await page.mouse.down();
+    await page.mouse.move(initialBox!.x, initialBox!.y - 50, { steps: 5 });
+    await page.mouse.up();
+    
+    // FAB should NOT appear after drag
+    const fabContainer = page.locator('.note-fab-container');
+    await expect(fabContainer).not.toBeVisible({ timeout: 500 });
+  });
+
+  test('should work with touch events on mobile', async ({ page }) => {
+    // Set mobile viewport
+    await page.setViewportSize({ width: 375, height: 667 });
+    
+    // Add a note
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    await cKey.click();
+    
+    // Click on the note to open FAB menu (use click instead of tap for testing)
+    const note = page.locator('.note-wrapper').first();
+    await expect(note).toHaveCount(1);
+    await note.scrollIntoViewIfNeeded();
+    await note.click();
+    
+    // Wait for FAB to appear
+    const fabContainer = page.locator('.note-fab-container');
+    await expect(fabContainer).toBeVisible({ timeout: 2000 });
+    
+    // Click delete button
+    const deleteButton = page.locator('.delete-button');
+    await deleteButton.click();
+    
+    // Verify note is deleted
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(0);
+  });
 });

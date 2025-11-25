@@ -1,6 +1,9 @@
 .note-wrapper {
   position: absolute;
   z-index: 2;
+  /* Give the wrapper a minimum clickable size */
+  min-width: 30px;
+  min-height: 30px;
 }
 
 .note-wrapper.clickable {
