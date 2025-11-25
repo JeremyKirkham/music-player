@@ -91,9 +91,6 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onClose} variant="redOutline">
-            Cancel
-          </Button>
           <Button
             onClick={handleLoadSong}
             disabled={!selectedSong || isLoading}

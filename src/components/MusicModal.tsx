@@ -63,9 +63,6 @@ const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
           </pre>
         </div>
         <DialogFooter>
-          <Button variant="redOutline" onClick={onClose}>
-            Close
-          </Button>
           <Button variant="green" onClick={copyToClipboard}>
             Copy to Clipboard
           </Button>
