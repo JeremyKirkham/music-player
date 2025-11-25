@@ -273,17 +273,34 @@ describe('playbackUtilities', () => {
   })
 
   describe('playNoteSound', () => {
-    let mockAudioContext: AudioContext
-    let mockOscillator: Partial<OscillatorNode>
-    let mockGainNode: Partial<GainNode>
+    let mockAudioContext: {
+      createOscillator: ReturnType<typeof vi.fn>
+      createGain: ReturnType<typeof vi.fn>
+      destination: AudioDestinationNode
+      currentTime: number
+    }
+    let mockOscillator: {
+      connect: ReturnType<typeof vi.fn>
+      start: ReturnType<typeof vi.fn>
+      stop: ReturnType<typeof vi.fn>
+      frequency: { value: number }
+      type: OscillatorType
+    }
+    let mockGainNode: {
+      connect: ReturnType<typeof vi.fn>
+      gain: {
+        setValueAtTime: ReturnType<typeof vi.fn>
+        exponentialRampToValueAtTime: ReturnType<typeof vi.fn>
+      }
+    }
 
     beforeEach(() => {
       mockOscillator = {
         connect: vi.fn(),
         start: vi.fn(),
         stop: vi.fn(),
-        frequency: { value: 0 } as AudioParam,
-        type: 'sine' as OscillatorType,
+        frequency: { value: 0 },
+        type: 'sine',
       }
 
       mockGainNode = {
@@ -291,15 +308,15 @@ describe('playbackUtilities', () => {
         gain: {
           setValueAtTime: vi.fn(),
           exponentialRampToValueAtTime: vi.fn(),
-        } as Partial<AudioParam> as AudioParam,
+        },
       }
 
       mockAudioContext = {
-        createOscillator: vi.fn(() => mockOscillator as OscillatorNode),
-        createGain: vi.fn(() => mockGainNode as GainNode),
+        createOscillator: vi.fn(() => mockOscillator as unknown as OscillatorNode),
+        createGain: vi.fn(() => mockGainNode as unknown as GainNode),
         destination: {} as AudioDestinationNode,
         currentTime: 0,
-      } as Partial<AudioContext> as AudioContext
+      }
     })
 
     afterEach(() => {
@@ -307,62 +324,62 @@ describe('playbackUtilities', () => {
     })
 
     it('should create oscillator and gain nodes', () => {
-      playNoteSound(mockAudioContext, 440, 0.5)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5)
 
       expect(mockAudioContext.createOscillator).toHaveBeenCalled()
       expect(mockAudioContext.createGain).toHaveBeenCalled()
     })
 
     it('should connect oscillator to gain node and destination', () => {
-      playNoteSound(mockAudioContext, 440, 0.5)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5)
 
       expect(mockOscillator.connect).toHaveBeenCalledWith(mockGainNode)
       expect(mockGainNode.connect).toHaveBeenCalledWith(mockAudioContext.destination)
     })
 
     it('should set frequency correctly', () => {
-      playNoteSound(mockAudioContext, 523.25, 0.5)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 523.25, 0.5)
 
       expect(mockOscillator.frequency.value).toBe(523.25)
     })
 
     it('should set oscillator type to sine', () => {
-      playNoteSound(mockAudioContext, 440, 0.5)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5)
 
       expect(mockOscillator.type).toBe('sine')
     })
 
     it('should start oscillator immediately when startTime is 0', () => {
       mockAudioContext.currentTime = 1.5
-      playNoteSound(mockAudioContext, 440, 0.5, 0)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5, 0)
 
       expect(mockOscillator.start).toHaveBeenCalledWith(1.5)
     })
 
     it('should start oscillator at specified time in the future', () => {
       mockAudioContext.currentTime = 1.0
-      playNoteSound(mockAudioContext, 440, 0.5, 0.5)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5, 0.5)
 
       expect(mockOscillator.start).toHaveBeenCalledWith(1.5)
     })
 
     it('should stop oscillator after duration', () => {
       mockAudioContext.currentTime = 1.0
-      playNoteSound(mockAudioContext, 440, 0.5, 0)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5, 0)
 
       expect(mockOscillator.stop).toHaveBeenCalledWith(1.5)
     })
 
     it('should limit maximum duration to 0.5 seconds', () => {
       mockAudioContext.currentTime = 1.0
-      playNoteSound(mockAudioContext, 440, 2.0, 0)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 2.0, 0)
 
       expect(mockOscillator.stop).toHaveBeenCalledWith(1.5) // currentTime + 0.5
     })
 
     it('should set gain envelope correctly', () => {
       mockAudioContext.currentTime = 1.0
-      playNoteSound(mockAudioContext, 440, 0.5, 0)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5, 0)
 
       expect(mockGainNode.gain.setValueAtTime).toHaveBeenCalledWith(0.3, 1.0)
       expect(mockGainNode.gain.exponentialRampToValueAtTime).toHaveBeenCalledWith(0.01, 1.5)
@@ -370,7 +387,7 @@ describe('playbackUtilities', () => {
 
     it('should handle scheduled playback', () => {
       mockAudioContext.currentTime = 0
-      playNoteSound(mockAudioContext, 440, 0.5, 1.0)
+      playNoteSound(mockAudioContext as unknown as AudioContext, 440, 0.5, 1.0)
 
       expect(mockOscillator.start).toHaveBeenCalledWith(1.0)
       expect(mockOscillator.stop).toHaveBeenCalledWith(1.5)
