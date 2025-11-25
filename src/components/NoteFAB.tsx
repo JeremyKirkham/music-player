@@ -77,6 +77,7 @@ const NoteFAB = ({ onDelete, onChangeDuration, onChangeAccidental, onClose, posi
           onClick={(e) => handleButtonClick(e, onDelete)}
           title="Delete note"
           aria-label="Delete note"
+          data-tooltip="Delete note"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <polyline points="3 6 5 6 21 6"></polyline>
@@ -92,6 +93,7 @@ const NoteFAB = ({ onDelete, onChangeDuration, onChangeAccidental, onClose, posi
             onClick={toggleDurationDropdown}
             title="Change duration"
             aria-label="Change duration"
+            data-tooltip="Change duration"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"></circle>
@@ -106,6 +108,7 @@ const NoteFAB = ({ onDelete, onChangeDuration, onChangeAccidental, onClose, posi
             onClick={toggleAccidentalDropdown}
             title="Change accidental"
             aria-label="Change accidental"
+            data-tooltip="Change accidental"
           >
             <span style={{ fontSize: '24px', fontWeight: 'bold' }}>♯♭</span>
           </button>
