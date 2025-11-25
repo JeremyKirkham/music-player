@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
 import type { NoteDuration } from '../types/music'
 import {
@@ -189,7 +189,7 @@ const Keyboard = ({
   // Select notes based on selected clef
   const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
 
-  const playNote = (frequency: number, noteName: string) => {
+  const playNote = useCallback((frequency: number, noteName: string) => {
     if (!audioContextRef.current) return
 
     const audioContext = audioContextRef.current
@@ -210,7 +210,7 @@ const Keyboard = ({
 
     // Use the ref to always call the latest callback with the selected clef
     onNotePlayRef.current(noteName, selectedClef)
-  }
+  }, [selectedClef]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -237,7 +237,7 @@ const Keyboard = ({
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [notes, selectedClef])
+  }, [notes, selectedClef, playNote])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
