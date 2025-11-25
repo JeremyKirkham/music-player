@@ -4,7 +4,6 @@ import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
 import LoadSongModal from './components/LoadSongModal'
 import TimeSignatureModal from './components/TimeSignatureModal'
-import NoteEditModal from './components/NoteEditModal'
 import NoteFAB from './components/NoteFAB'
 import MenuBar from './components/MenuBar'
 import { TooltipProvider } from './components/ui/tooltip'
@@ -62,7 +61,6 @@ function App() {
   const [showBassClef, setShowBassClef] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
   const [fabPosition, setFabPosition] = useState<{ x: number; y: number } | null>(null)
-  const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const scheduledTimeoutsRef = useRef<number[]>([])
@@ -649,77 +647,6 @@ function App() {
     updateScoreWithHistory(newScore)
   }
 
-  // Handle save from NoteEditModal
-  const handleSaveNoteEdit = (updatedEvent: MusicalEvent) => {
-    const updatedEvents = musicScore.events.map(e =>
-      e.id === updatedEvent.id ? updatedEvent : e
-    )
-
-    // Create a temporary score with updated events
-    let newScore: MusicScore = {
-      ...musicScore,
-      events: updatedEvents,
-      metadata: {
-        ...musicScore.metadata,
-        modifiedAt: new Date().toISOString(),
-      },
-    }
-
-    // Recalculate positions for all events in case duration changed
-    newScore = recalculateScoreForTimeSignature(newScore, musicScore.timeSignature)
-
-    // Recalculate beam groups
-    const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
-      newScore.events,
-      musicScore.timeSignature
-    )
-
-    newScore = {
-      ...newScore,
-      events: eventsWithBeams,
-      beamGroups,
-      measures: newScore.measures.map(measure => ({
-        ...measure,
-        beamGroups: beamGroups
-          .filter(bg => {
-            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
-            return firstEvent?.position.measureIndex === measure.index
-          })
-          .map(bg => bg.id),
-      })),
-    }
-
-    updateScoreWithHistory(newScore)
-  }
-
-  // Handle delete from NoteEditModal
-  const handleDeleteNote = (eventId: string) => {
-    const newScore = removeEventFromScore(musicScore, eventId)
-    
-    // Recalculate beam groups
-    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
-      newScore.events,
-      newScore.timeSignature
-    )
-
-    const finalScore = {
-      ...newScore,
-      events: updatedEvents,
-      beamGroups,
-      measures: newScore.measures.map(measure => ({
-        ...measure,
-        beamGroups: beamGroups
-          .filter(bg => {
-            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
-            return firstEvent?.position.measureIndex === measure.index
-          })
-          .map(bg => bg.id),
-      })),
-    }
-
-    updateScoreWithHistory(finalScore)
-  }
-
   return (
     <TooltipProvider delayDuration={300}>
       <div className="app">
@@ -769,13 +696,6 @@ function App() {
         onClose={() => setIsTimeSignatureModalOpen(false)}
         currentTimeSignature={musicScore.timeSignature}
         onSelect={updateTimeSignature}
-      />
-      <NoteEditModal
-        isOpen={isNoteEditModalOpen}
-        onClose={() => setIsNoteEditModalOpen(false)}
-        event={selectedEvent}
-        onSave={handleSaveNoteEdit}
-        onDelete={handleDeleteNote}
       />
       {fabPosition && selectedEvent && (
         <NoteFAB

@@ -1,10 +1,7 @@
 import type { TimeSignature } from '../types/music'
-import './TimeSignatureModal.css'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from './ui/dialog'
@@ -42,9 +39,6 @@ function TimeSignatureModal({
       <DialogContent className="time-signature-modal">
         <DialogHeader>
           <DialogTitle>Select Time Signature</DialogTitle>
-          <DialogDescription>
-            Choose a time signature for your music score
-          </DialogDescription>
         </DialogHeader>
         <div className="time-signature-grid grid grid-cols-3 gap-4">
           {timeSignatures.map((ts) => (
@@ -66,11 +60,6 @@ function TimeSignatureModal({
             </Button>
           ))}
         </div>
-        <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>
-            Cancel
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

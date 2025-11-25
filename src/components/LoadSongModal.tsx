@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import './LoadSongModal.css'
 import type { MusicScore } from '../types/music'
 import {
   Dialog,
@@ -53,7 +52,6 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
       }
       const score: MusicScore = await response.json()
       onLoadScore(score)
-      alert(`Loaded: ${availableSongs.find(s => s.file === selectedSong)?.name}`)
       onClose()
     } catch (error) {
       console.error('Error loading song:', error)
@@ -93,12 +91,10 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
           </div>
         </div>
         <DialogFooter>
-          <Button onClick={onClose} variant="secondary">
-            Cancel
-          </Button>
           <Button
             onClick={handleLoadSong}
             disabled={!selectedSong || isLoading}
+            variant="green"
           >
             {isLoading ? 'Loading...' : 'Load Song'}
           </Button>
