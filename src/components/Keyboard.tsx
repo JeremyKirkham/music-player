@@ -14,14 +14,32 @@ interface KeyboardProps {
   activeNotes?: Set<string>
   currentDuration: NoteDuration
   onDurationChange: (duration: NoteDuration) => void
+  showTrebleClef?: boolean
+  showBassClef?: boolean
 }
 
-const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDurationChange }: KeyboardProps) => {
+const Keyboard = ({
+  onNotePlay,
+  activeNotes = new Set(),
+  currentDuration,
+  onDurationChange,
+  showTrebleClef = true,
+  showBassClef = true,
+}: KeyboardProps) => {
   const audioContextRef = useRef<AudioContext | null>(null)
   const keyboardRef = useRef<HTMLDivElement>(null)
   const onNotePlayRef = useRef(onNotePlay)
   const [keyDimensions, setKeyDimensions] = useState({ whiteKeyWidth: 60, blackKeyWidth: 40 })
   const [selectedClef, setSelectedClef] = useState<'treble' | 'bass'>('treble')
+
+  // Auto-switch to visible clef if current one is hidden
+  useEffect(() => {
+    if (!showTrebleClef && selectedClef === 'treble' && showBassClef) {
+      setSelectedClef('bass')
+    } else if (!showBassClef && selectedClef === 'bass' && showTrebleClef) {
+      setSelectedClef('treble')
+    }
+  }, [showTrebleClef, showBassClef, selectedClef])
 
   // Keep the ref updated with the latest callback
   useEffect(() => {
@@ -248,7 +266,6 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
   return (
     <div className="keyboard-container">
       <div className="keyboard-header">
-        <h2>Piano Keyboard</h2>
         <div className="keyboard-controls">
           <div className="clef-control">
             <label htmlFor="keyboard-clef">Clef:</label>
@@ -257,9 +274,10 @@ const Keyboard = ({ onNotePlay, activeNotes = new Set(), currentDuration, onDura
               value={selectedClef}
               onChange={(e) => setSelectedClef(e.target.value as 'treble' | 'bass')}
               className="clef-select"
+              disabled={!showTrebleClef || !showBassClef}
             >
-              <option value="treble">Treble</option>
-              <option value="bass">Bass</option>
+              {showTrebleClef && <option value="treble">Treble</option>}
+              {showBassClef && <option value="bass">Bass</option>}
             </select>
           </div>
           <div className="duration-control">

@@ -11,6 +11,7 @@ interface StaffClefProps {
   clefType: 'treble' | 'bass'
   activeEventIds?: Set<string>
   onNoteClick?: (event: MusicalEvent) => void
+  onTimeSignatureClick?: () => void
 }
 
 // Staff positioning constants (in pixels from bottom of measure)
@@ -125,7 +126,7 @@ const BASS_NOTE_POSITION_MAP: { [key: string]: number } = {
   'C6': 312,
 } as const
 
-const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteClick }: StaffClefProps) => {
+const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteClick, onTimeSignatureClick }: StaffClefProps) => {
   const PIXELS_PER_BEAT = 50
 
   // Get note position from the clef-specific map
@@ -180,7 +181,18 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
       <div className={`clef-symbol ${clefType}`}>{clefSymbol}</div>
 
       {/* Time signature */}
-      <div className="time-signature-display">
+      <div
+        className="time-signature-display clickable"
+        onClick={onTimeSignatureClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onTimeSignatureClick?.()
+          }
+        }}
+      >
         <div className="time-sig-top">{musicScore.timeSignature.numerator}</div>
         <div className="time-sig-bottom">{musicScore.timeSignature.denominator}</div>
       </div>

@@ -24,9 +24,9 @@ test.describe('Music Player App', () => {
     const menuBar = page.locator('.menu-bar');
     await expect(menuBar).toBeVisible();
     
-    // Check for tempo control (it's a select dropdown, not input[type="number"])
-    const tempoSelect = page.locator('#tempo');
-    await expect(tempoSelect).toBeVisible();
+    // Check for tempo button (it's now a button that opens a dropdown)
+    const tempoButton = page.getByRole('button', { name: 'Tempo' });
+    await expect(tempoButton).toBeVisible();
   });
 
   test('should add a note when clicking a keyboard key', async ({ page }) => {
@@ -100,7 +100,11 @@ test.describe('Music Player App', () => {
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
     
-    // Click view music button
+    // Open the dropdown menu
+    const menuButton = page.getByRole('button', { name: 'Menu' });
+    await menuButton.click();
+    
+    // Click view music button in dropdown
     const viewMusicButton = page.getByRole('button', { name: /View Score/i });
     await viewMusicButton.click();
     
@@ -150,19 +154,23 @@ test.describe('Music Player App', () => {
   });
 
   test('should change tempo', async ({ page }) => {
-    // Find tempo select dropdown
-    const tempoSelect = page.locator('#tempo');
-    await expect(tempoSelect).toBeVisible();
+    // Find and click tempo button to open dropdown
+    const tempoButton = page.getByRole('button', { name: 'Tempo' });
+    await expect(tempoButton).toBeVisible();
+    await tempoButton.click();
     
-    // Get initial value
-    const initialValue = await tempoSelect.inputValue();
+    // Wait for dropdown to appear
+    const tempoDropdown = page.locator('.tempo-dropdown');
+    await expect(tempoDropdown).toBeVisible();
     
-    // Change tempo to 140
-    await tempoSelect.selectOption('140');
+    // Click on 140 BPM option
+    const tempo140Option = page.getByRole('button', { name: /140.*Vivace/i });
+    await tempo140Option.click();
     
-    // Verify value changed
-    const newValue = await tempoSelect.inputValue();
-    expect(newValue).toBe('140');
-    expect(newValue).not.toBe(initialValue);
+    // Verify dropdown closed
+    await expect(tempoDropdown).not.toBeVisible();
+    
+    // Verify tempo button tooltip shows new tempo
+    await expect(tempoButton).toHaveAttribute('data-tooltip', 'Tempo: 140 BPM');
   });
 });

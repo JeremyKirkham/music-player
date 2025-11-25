@@ -14,7 +14,6 @@ interface SongOption {
 }
 
 const availableSongs: SongOption[] = [
-  { name: 'Beams and Flags Test', file: 'beams-test.json' },
   { name: 'Twinkle Twinkle Little Star', file: 'twinkle-twinkle.json' },
   { name: 'C Major Scale', file: 'c-major-scale.json' },
   { name: 'Simple Chord Progression', file: 'simple-chord.json' },
