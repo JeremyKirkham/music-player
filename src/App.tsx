@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import MusicalStaff from './components/MusicalStaff'
 import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
-import NoteEditModal from './components/NoteEditModal'
 import LoadSongModal from './components/LoadSongModal'
 import TimeSignatureModal from './components/TimeSignatureModal'
 import MenuBar from './components/MenuBar'
@@ -16,6 +15,7 @@ import {
   generateId,
   parseNoteString,
   recalculateScoreForTimeSignature,
+  changePitchByPositions,
 } from './utils/musicUtilities'
 import { calculateScoreBeamGroups } from './utils/beamCalculation'
 import {
@@ -50,9 +50,7 @@ function App() {
 
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
   const [isLoadSongModalOpen, setIsLoadSongModalOpen] = useState(false)
-  const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
   const [isTimeSignatureModalOpen, setIsTimeSignatureModalOpen] = useState(false)
-  const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
@@ -470,76 +468,48 @@ function App() {
     updateScoreWithHistory(newScore)
   }
 
-  // Handle note click to open edit modal
-  const handleNoteClick = (event: MusicalEvent) => {
-    setSelectedEvent(event)
-    setIsNoteEditModalOpen(true)
-  }
+  // Handle dragging a note to change pitch
+  const handleNoteDrag = (event: MusicalEvent, positionChange: number) => {
+    if (event.type !== 'note' || !event.notes || event.notes.length === 0) return
 
-  // Handle saving updated note
-  const handleSaveNote = (updatedEvent: MusicalEvent) => {
-    // Find and replace the event with the updated one
-    const updatedEvents = musicScore.events.map(event =>
-      event.id === updatedEvent.id ? updatedEvent : event
-    )
+    // Update all notes in the event (for chords)
+    const updatedNotes = event.notes.map(note => changePitchByPositions(note, positionChange))
 
-    // Create a temporary score with updated events
-    let tempScore: MusicScore = {
-      ...musicScore,
-      events: updatedEvents,
+    const updatedEvent: MusicalEvent = {
+      ...event,
+      notes: updatedNotes,
     }
 
-    // Recalculate all positions and measures based on new durations
-    tempScore = recalculateScoreForTimeSignature(tempScore, musicScore.timeSignature)
+    // Find and replace the event with the updated one
+    const updatedEvents = musicScore.events.map(e =>
+      e.id === updatedEvent.id ? updatedEvent : e
+    )
+
+    // Create updated score
+    let newScore: MusicScore = {
+      ...musicScore,
+      events: updatedEvents,
+      metadata: {
+        ...musicScore.metadata,
+        modifiedAt: new Date().toISOString(),
+      },
+    }
 
     // Recalculate beam groups
     const { beamGroups, updatedEvents: eventsWithBeams } = calculateScoreBeamGroups(
-      tempScore.events,
-      musicScore.timeSignature
-    )
-
-    // Update the score with beam groups
-    const newScore: MusicScore = {
-      ...tempScore,
-      events: eventsWithBeams,
-      beamGroups,
-      measures: tempScore.measures.map(measure => ({
-        ...measure,
-        beamGroups: beamGroups
-          .filter(bg => {
-            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
-            return firstEvent?.position.measureIndex === measure.index
-          })
-          .map(bg => bg.id),
-      })),
-    }
-
-    updateScoreWithHistory(newScore)
-  }
-
-  // Handle deleting a note
-  const handleDeleteNote = (eventId: string) => {
-    // Remove the event
-    let newScore = removeEventFromScore(musicScore, eventId)
-
-    // Recalculate all positions and measures for remaining events
-    newScore = recalculateScoreForTimeSignature(newScore, musicScore.timeSignature)
-
-    // Recalculate beam groups
-    const { beamGroups, updatedEvents } = calculateScoreBeamGroups(
       newScore.events,
       musicScore.timeSignature
     )
 
     newScore = {
       ...newScore,
-      events: updatedEvents,
+      events: eventsWithBeams,
       beamGroups,
       measures: newScore.measures.map(measure => ({
         ...measure,
         beamGroups: beamGroups
           .filter(bg => {
-            const firstEvent = updatedEvents.find(e => e.id === bg.eventIds[0])
+            const firstEvent = eventsWithBeams.find(e => e.id === bg.eventIds[0])
             return firstEvent?.position.measureIndex === measure.index
           })
           .map(bg => bg.id),
@@ -566,12 +536,12 @@ function App() {
       <MusicalStaff
         musicScore={musicScore}
         activeEventIds={activeEventIds}
-        onNoteClick={handleNoteClick}
         onTimeSignatureClick={() => setIsTimeSignatureModalOpen(true)}
         showTrebleClef={showTrebleClef}
         setShowTrebleClef={setShowTrebleClef}
         showBassClef={showBassClef}
         setShowBassClef={setShowBassClef}
+        onNoteDrag={handleNoteDrag}
       />
       <Keyboard
         onNotePlay={handleNotePlay}
@@ -590,14 +560,6 @@ function App() {
         isOpen={isLoadSongModalOpen}
         onClose={() => setIsLoadSongModalOpen(false)}
         onLoadScore={handleLoadScore}
-      />
-      <NoteEditModal
-        key={selectedEvent?.id}
-        isOpen={isNoteEditModalOpen}
-        onClose={() => setIsNoteEditModalOpen(false)}
-        event={selectedEvent}
-        onSave={handleSaveNote}
-        onDelete={handleDeleteNote}
       />
       <TimeSignatureModal
         isOpen={isTimeSignatureModalOpen}

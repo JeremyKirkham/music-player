@@ -271,6 +271,32 @@ export function getCurrentPosition(
 }
 
 /**
+ * Change pitch by a number of positions (staff lines/spaces)
+ * Each position is one note in the scale (C-D-E-F-G-A-B)
+ */
+export function changePitchByPositions(note: Note, positionChange: number): Note {
+  const pitches = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+  const currentIndex = pitches.indexOf(note.pitch)
+  
+  if (currentIndex === -1) {
+    throw new Error(`Invalid pitch: ${note.pitch}`)
+  }
+  
+  // Calculate total position including octave
+  let totalPosition = currentIndex + (note.octave * 7) + positionChange
+  
+  // Calculate new octave and pitch
+  const newOctave = Math.floor(totalPosition / 7)
+  const newPitchIndex = ((totalPosition % 7) + 7) % 7 // Handle negative modulo
+  
+  return {
+    ...note,
+    pitch: pitches[newPitchIndex],
+    octave: newOctave,
+  }
+}
+
+/**
  * Recalculate all event positions and measures based on new time signature
  */
 export function recalculateScoreForTimeSignature(

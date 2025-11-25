@@ -4,8 +4,13 @@
 }
 
 .note-wrapper.clickable {
-  cursor: pointer;
+  cursor: grab;
   transition: transform 0.1s ease;
+}
+
+.note-wrapper.dragging {
+  cursor: grabbing;
+  z-index: 100;
 }
 
 .note-wrapper.clickable:hover {

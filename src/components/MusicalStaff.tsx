@@ -6,23 +6,23 @@ import StaffClef from './StaffClef'
 interface MusicalStaffProps {
   musicScore: MusicScore
   activeEventIds?: Set<string>
-  onNoteClick?: (event: MusicalEvent) => void
   onTimeSignatureClick?: () => void
   showTrebleClef?: boolean
   setShowTrebleClef?: (show: boolean) => void
   showBassClef?: boolean
   setShowBassClef?: (show: boolean) => void
+  onNoteDrag?: (event: MusicalEvent, positionChange: number) => void
 }
 
 const MusicalStaff = ({
   musicScore,
   activeEventIds = new Set(),
-  onNoteClick,
   onTimeSignatureClick,
   showTrebleClef = true,
   setShowTrebleClef,
   showBassClef = true,
   setShowBassClef,
+  onNoteDrag,
 }: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -166,8 +166,8 @@ const MusicalStaff = ({
             musicScore={musicScore}
             clefType="treble"
             activeEventIds={activeEventIds}
-            onNoteClick={onNoteClick}
             onTimeSignatureClick={onTimeSignatureClick}
+            onNoteDrag={onNoteDrag}
           />
         )}
         {showBassClef && (
@@ -175,8 +175,8 @@ const MusicalStaff = ({
             musicScore={musicScore}
             clefType="bass"
             activeEventIds={activeEventIds}
-            onNoteClick={onNoteClick}
             onTimeSignatureClick={onTimeSignatureClick}
+            onNoteDrag={onNoteDrag}
           />
         )}
       </div>
