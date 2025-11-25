@@ -1,7 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
 import { FaPlay, FaPause, FaStop } from 'react-icons/fa'
 import { GiMetronome } from 'react-icons/gi'
 import type { MusicScore } from '../types/music'
+import { Button } from './ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip'
 
 interface PlaybackControlsProps {
   musicScore: MusicScore
@@ -22,9 +33,6 @@ function PlaybackControls({
   tempo,
   setTempo,
 }: PlaybackControlsProps) {
-  const [showTempoDropdown, setShowTempoDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
   const tempoOptions = [
     { value: 40, label: '40 - Grave' },
     { value: 60, label: '60 - Largo' },
@@ -36,73 +44,74 @@ function PlaybackControls({
     { value: 180, label: '180 - Prestissimo' },
   ]
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowTempoDropdown(false)
-      }
-    }
-
-    if (showTempoDropdown) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showTempoDropdown])
-
-  const handleTempoSelect = (newTempo: number) => {
-    setTempo(newTempo)
-    setShowTempoDropdown(false)
-  }
-
   return (
     <div className="playback-controls">
       <div className="playback-group">
-        <button
-          onClick={stopPlayback}
-          className="playback-btn stop-btn"
-          disabled={!isPlaying && !isPaused}
-          data-tooltip="Stop"
-          aria-label="Stop"
-        >
-          <FaStop />
-        </button>
-        <button
-          onClick={togglePlayback}
-          className={`playback-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}
-          disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}
-          data-tooltip={isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}
-          aria-label={isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}
-        >
-          {isPlaying && !isPaused ? <FaPause /> : <FaPlay />}
-        </button>
-        <div className="tempo-dropdown-container" ref={dropdownRef}>
-          <button
-            onClick={() => setShowTempoDropdown(!showTempoDropdown)}
-            className="playback-btn tempo-btn"
-            disabled={isPlaying || isPaused}
-            data-tooltip={`Tempo: ${tempo} BPM`}
-            aria-label="Tempo"
-          >
-            <GiMetronome />
-          </button>
-          {showTempoDropdown && (
-            <div className="tempo-dropdown">
-              {tempoOptions.map((option) => (
-                <button
-                  key={option.value}
-                  className={`tempo-option ${tempo === option.value ? 'active' : ''}`}
-                  onClick={() => handleTempoSelect(option.value)}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={stopPlayback}
+              variant="ghost"
+              size="icon"
+              className="playback-btn stop-btn"
+              disabled={!isPlaying && !isPaused}
+              aria-label="Stop"
+            >
+              <FaStop />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Stop</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={togglePlayback}
+              variant="ghost"
+              size="icon"
+              className={`playback-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}
+              disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}
+              aria-label={isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}
+            >
+              {isPlaying && !isPaused ? <FaPause /> : <FaPlay />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}</p>
+          </TooltipContent>
+        </Tooltip>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="playback-btn tempo-btn"
+                  disabled={isPlaying || isPaused}
+                  aria-label="Tempo"
                 >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+                  <GiMetronome />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Tempo: {tempo} BPM</p>
+            </TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent className="tempo-dropdown">
+            {tempoOptions.map((option) => (
+              <DropdownMenuItem
+                key={option.value}
+                className={tempo === option.value ? 'bg-accent' : ''}
+                onClick={() => setTempo(option.value)}
+              >
+                {option.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

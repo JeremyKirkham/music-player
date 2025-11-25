@@ -7,6 +7,7 @@ import TimeSignatureModal from './components/TimeSignatureModal'
 import NoteEditModal from './components/NoteEditModal'
 import NoteFAB from './components/NoteFAB'
 import MenuBar from './components/MenuBar'
+import { TooltipProvider } from './components/ui/tooltip'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
 import {
@@ -720,8 +721,9 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <MenuBar
+    <TooltipProvider delayDuration={300}>
+      <div className="app">
+        <MenuBar
         musicScore={musicScore}
         tempo={tempo}
         setTempo={setTempo}
@@ -786,7 +788,8 @@ function App() {
           currentAccidental={selectedEvent.notes?.[0]?.accidental}
         />
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 

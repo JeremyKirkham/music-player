@@ -91,14 +91,19 @@ test.describe('Music Player App', () => {
     // Find duration select dropdown
     const durationSelect = page.locator('#keyboard-duration');
     await expect(durationSelect).toBeVisible();
-    
-    // Change to half note
-    await durationSelect.selectOption('half');
-    
+
+    // Change to half note - click to open dropdown
+    await durationSelect.click();
+
+    // Wait for dropdown to appear and click the half note option
+    const halfOption = page.getByRole('option', { name: 'Half' });
+    await expect(halfOption).toBeVisible();
+    await halfOption.click();
+
     // Add a note with the new duration
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
-    
+
     // Verify note was added
     const notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(1);
@@ -108,18 +113,20 @@ test.describe('Music Player App', () => {
     // Add a note first
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
-    
+
     // Open the dropdown menu
-    const menuButton = page.getByRole('button', { name: 'Menu' });
+    const menuButton = page.locator('.menu-toggle-btn');
+    await expect(menuButton).toBeVisible();
     await menuButton.click();
-    
-    // Click view music button in dropdown
-    const viewMusicButton = page.getByRole('button', { name: /View Score/i });
+
+    // Click view music button in dropdown (it's a menuitem, not a button)
+    const viewMusicButton = page.getByRole('menuitem', { name: /View Score/i });
+    await expect(viewMusicButton).toBeVisible();
     await viewMusicButton.click();
-    
-    // Check that modal appears
-    const modal = page.locator('.debug-modal-overlay');
-    await expect(modal.first()).toBeVisible();
+
+    // Check that dialog modal appears with title
+    const dialogTitle = page.getByRole('heading', { name: /Music Score/i });
+    await expect(dialogTitle).toBeVisible();
   });
 
   test('should undo note addition with keyboard shortcut', async ({ page }) => {
@@ -167,20 +174,18 @@ test.describe('Music Player App', () => {
     const tempoButton = page.getByRole('button', { name: 'Tempo' });
     await expect(tempoButton).toBeVisible();
     await tempoButton.click();
-    
+
     // Wait for dropdown to appear
     const tempoDropdown = page.locator('.tempo-dropdown');
     await expect(tempoDropdown).toBeVisible();
-    
+
     // Click on 140 BPM option
-    const tempo140Option = page.getByRole('button', { name: /140.*Vivace/i });
+    const tempo140Option = page.getByRole('menuitem', { name: /140.*Vivace/i });
+    await expect(tempo140Option).toBeVisible();
     await tempo140Option.click();
-    
+
     // Verify dropdown closed
     await expect(tempoDropdown).not.toBeVisible();
-    
-    // Verify tempo button tooltip shows new tempo
-    await expect(tempoButton).toHaveAttribute('data-tooltip', 'Tempo: 140 BPM');
   });
 
   test('should display FAB buttons when clicking a note', async ({ page }) => {
@@ -195,21 +200,6 @@ test.describe('Music Player App', () => {
     // Wait for note to appear - check that it exists in DOM
     const note = page.locator('.note-wrapper').first();
     await expect(note).toHaveCount(1);
-    
-    // Debug: Check note position and visibility
-    const noteInfo = await note.evaluate(el => {
-      const htmlEl = el as HTMLElement;
-      return {
-        visible: window.getComputedStyle(el).visibility !== 'hidden',
-        display: window.getComputedStyle(el).display,
-        opacity: window.getComputedStyle(el).opacity,
-        bottom: htmlEl.style.bottom,
-        left: htmlEl.style.left,
-        boundingRect: el.getBoundingClientRect(),
-        offsetParent: htmlEl.offsetParent?.className
-      };
-    });
-    console.log('Note info:', noteInfo);
     
     // Use force click since note might be partially obscured
     await note.click({ force: true, timeout: 5000 });

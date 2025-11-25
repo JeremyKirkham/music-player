@@ -1,6 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
 import type { NoteDuration } from '../types/music'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
 
 interface Note {
   name: string
@@ -182,7 +189,7 @@ const Keyboard = ({
   // Select notes based on selected clef
   const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
 
-  const playNote = (frequency: number, noteName: string) => {
+  const playNote = useCallback((frequency: number, noteName: string) => {
     if (!audioContextRef.current) return
 
     const audioContext = audioContextRef.current
@@ -203,7 +210,7 @@ const Keyboard = ({
 
     // Use the ref to always call the latest callback with the selected clef
     onNotePlayRef.current(noteName, selectedClef)
-  }
+  }, [selectedClef]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -230,7 +237,7 @@ const Keyboard = ({
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [notes, selectedClef])
+  }, [notes, selectedClef, playNote])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
@@ -269,31 +276,37 @@ const Keyboard = ({
         <div className="keyboard-controls">
           <div className="clef-control">
             <label htmlFor="keyboard-clef">Clef:</label>
-            <select
-              id="keyboard-clef"
+            <Select
               value={selectedClef}
-              onChange={(e) => setSelectedClef(e.target.value as 'treble' | 'bass')}
-              className="clef-select"
+              onValueChange={(value) => setSelectedClef(value as 'treble' | 'bass')}
               disabled={!showTrebleClef || !showBassClef}
             >
-              {showTrebleClef && <option value="treble">Treble</option>}
-              {showBassClef && <option value="bass">Bass</option>}
-            </select>
+              <SelectTrigger id="keyboard-clef" className="w-[120px] text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {showTrebleClef && <SelectItem value="treble">Treble</SelectItem>}
+                {showBassClef && <SelectItem value="bass">Bass</SelectItem>}
+              </SelectContent>
+            </Select>
           </div>
           <div className="duration-control">
             <label htmlFor="keyboard-duration">Duration:</label>
-            <select
-              id="keyboard-duration"
+            <Select
               value={currentDuration}
-              onChange={(e) => onDurationChange(e.target.value as NoteDuration)}
-              className="duration-select"
+              onValueChange={(value) => onDurationChange(value as NoteDuration)}
             >
-              <option value="whole">Whole</option>
-              <option value="half">Half</option>
-              <option value="quarter">Quarter</option>
-              <option value="eighth">Eighth</option>
-              <option value="sixteenth">Sixteenth</option>
-            </select>
+              <SelectTrigger id="keyboard-duration" className="w-[130px] text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="whole">Whole</SelectItem>
+                <SelectItem value="half">Half</SelectItem>
+                <SelectItem value="quarter">Quarter</SelectItem>
+                <SelectItem value="eighth">Eighth</SelectItem>
+                <SelectItem value="sixteenth">Sixteenth</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

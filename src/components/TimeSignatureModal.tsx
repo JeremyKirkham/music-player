@@ -1,5 +1,14 @@
 import type { TimeSignature } from '../types/music'
 import './TimeSignatureModal.css'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
+import { Button } from './ui/button'
 
 interface TimeSignatureModalProps {
   isOpen: boolean
@@ -14,8 +23,6 @@ function TimeSignatureModal({
   currentTimeSignature,
   onSelect,
 }: TimeSignatureModalProps) {
-  if (!isOpen) return null
-
   const timeSignatures = [
     { numerator: 2, denominator: 4 },
     { numerator: 3, denominator: 4 },
@@ -31,33 +38,41 @@ function TimeSignatureModal({
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="time-signature-modal" onClick={(e) => e.stopPropagation()}>
-        <h2>Select Time Signature</h2>
-        <div className="time-signature-grid">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="time-signature-modal">
+        <DialogHeader>
+          <DialogTitle>Select Time Signature</DialogTitle>
+          <DialogDescription>
+            Choose a time signature for your music score
+          </DialogDescription>
+        </DialogHeader>
+        <div className="time-signature-grid grid grid-cols-3 gap-4">
           {timeSignatures.map((ts) => (
-            <button
+            <Button
               key={`${ts.numerator}/${ts.denominator}`}
-              className={`time-signature-option ${
+              variant={
                 currentTimeSignature.numerator === ts.numerator &&
                 currentTimeSignature.denominator === ts.denominator
-                  ? 'active'
-                  : ''
-              }`}
+                  ? 'default'
+                  : 'outline'
+              }
+              className="time-signature-option h-20 w-20 rounded-2xl"
               onClick={() => handleSelect(ts)}
             >
-              <div className="time-sig-display">
-                <div className="time-sig-num">{ts.numerator}</div>
-                <div className="time-sig-denom">{ts.denominator}</div>
+              <div className="time-sig-display flex flex-col">
+                <div className="time-sig-num text-2xl font-bold">{ts.numerator}</div>
+                <div className="time-sig-denom text-2xl font-bold">{ts.denominator}</div>
               </div>
-            </button>
+            </Button>
           ))}
         </div>
-        <button className="modal-close-btn" onClick={onClose}>
-          Cancel
-        </button>
-      </div>
-    </div>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

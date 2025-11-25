@@ -1,6 +1,14 @@
-import { useEffect } from 'react'
 import './MusicModal.css'
 import type { MusicScore } from '../types/music'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
+import { Button } from './ui/button'
 
 interface MusicModalProps {
   isOpen: boolean
@@ -9,28 +17,6 @@ interface MusicModalProps {
 }
 
 const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleEscape)
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden'
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
   const jsonString = JSON.stringify(musicScore, null, 2)
 
   const copyToClipboard = () => {
@@ -44,14 +30,16 @@ const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
   }
 
   return (
-    <div className="debug-modal-overlay" onClick={onClose}>
-      <div className="debug-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="debug-modal-header">
-          <h2>Music Score</h2>
-          <button className="debug-modal-close" onClick={onClose}>×</button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="debug-modal-content max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Music Score</DialogTitle>
+          <DialogDescription>
+            View and copy your music score data
+          </DialogDescription>
+        </DialogHeader>
         <div className="debug-modal-body">
-          <div className="debug-stats">
+          <div className="debug-stats grid grid-cols-2 gap-4 mb-4">
             <div className="debug-stat">
               <span className="debug-stat-label">Events:</span>
               <span className="debug-stat-value">{musicScore.events.length}</span>
@@ -71,20 +59,20 @@ const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
               </span>
             </div>
           </div>
-          <pre className="debug-json">
+          <pre className="debug-json bg-muted p-4 rounded-md overflow-auto max-h-96">
             <code>{jsonString}</code>
           </pre>
         </div>
-        <div className="debug-modal-footer">
-          <button className="debug-copy-btn" onClick={copyToClipboard}>
-            Copy to Clipboard
-          </button>
-          <button className="debug-close-btn" onClick={onClose}>
+        <DialogFooter>
+          <Button variant="secondary" onClick={onClose}>
             Close
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+          <Button onClick={copyToClipboard}>
+            Copy to Clipboard
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

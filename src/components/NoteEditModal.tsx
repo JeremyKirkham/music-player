@@ -1,6 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './NoteEditModal.css'
 import type { MusicalEvent, Note, NoteDuration } from '../types/music'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+import { Input } from './ui/input'
+import { Button } from './ui/button'
 
 interface NoteEditModalProps {
   isOpen: boolean
@@ -19,25 +36,6 @@ const NoteEditModal = ({ isOpen, onClose, event, onSave, onDelete }: NoteEditMod
   const [accidental, setAccidental] = useState<'sharp' | 'flat' | 'natural' | undefined>(initialNote?.accidental)
   const [duration, setDuration] = useState<NoteDuration>(event?.duration ?? 'quarter')
   const [clef, setClef] = useState<'treble' | 'bass'>(initialNote?.clef ?? 'treble')
-
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'hidden'
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = 'unset'
-    }
-  }, [isOpen, onClose])
 
   const handleSave = () => {
     if (!event) return
@@ -69,38 +67,43 @@ const NoteEditModal = ({ isOpen, onClose, event, onSave, onDelete }: NoteEditMod
     }
   }
 
-  if (!isOpen || !event) return null
+  if (!event) return null
 
   return (
-    <div className="note-edit-modal-overlay" onClick={onClose}>
-      <div className="note-edit-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="note-edit-modal-header">
-          <h2>Edit Note</h2>
-          <button className="note-edit-modal-close" onClick={onClose}>×</button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="note-edit-modal-content max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Note</DialogTitle>
+          <DialogDescription>
+            Modify note properties or delete the note
+          </DialogDescription>
+        </DialogHeader>
         <div className="note-edit-modal-body">
-          <div className="form-grid">
-            <div className="form-group">
+          <div className="form-grid grid grid-cols-2 gap-4">
+            <div className="form-group space-y-2">
               <label htmlFor="pitch">Pitch (Tone)</label>
-              <select
-                id="pitch"
+              <Select
                 value={pitch}
-                onChange={(e) => setPitch(e.target.value)}
-                className="form-select"
+                onValueChange={setPitch}
               >
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-                <option value="F">F</option>
-                <option value="G">G</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-              </select>
+                <SelectTrigger id="pitch" className="form-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="C">C</SelectItem>
+                  <SelectItem value="D">D</SelectItem>
+                  <SelectItem value="E">E</SelectItem>
+                  <SelectItem value="F">F</SelectItem>
+                  <SelectItem value="G">G</SelectItem>
+                  <SelectItem value="A">A</SelectItem>
+                  <SelectItem value="B">B</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group space-y-2">
               <label htmlFor="octave">Octave</label>
-              <input
+              <Input
                 id="octave"
                 type="number"
                 min="0"
@@ -111,56 +114,65 @@ const NoteEditModal = ({ isOpen, onClose, event, onSave, onDelete }: NoteEditMod
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group space-y-2">
               <label htmlFor="accidental">Accidental</label>
-              <select
-                id="accidental"
+              <Select
                 value={accidental ?? ''}
-                onChange={(e) => setAccidental(e.target.value === '' ? undefined : e.target.value as 'sharp' | 'flat' | 'natural')}
-                className="form-select"
+                onValueChange={(value) => setAccidental(value === '' ? undefined : value as 'sharp' | 'flat' | 'natural')}
               >
-                <option value="">None</option>
-                <option value="sharp">♯ Sharp</option>
-                <option value="flat">♭ Flat</option>
-                <option value="natural">♮ Natural</option>
-              </select>
+                <SelectTrigger id="accidental" className="form-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="sharp">♯ Sharp</SelectItem>
+                  <SelectItem value="flat">♭ Flat</SelectItem>
+                  <SelectItem value="natural">♮ Natural</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group space-y-2">
               <label htmlFor="clef">Clef</label>
-              <select
-                id="clef"
+              <Select
                 value={clef}
-                onChange={(e) => setClef(e.target.value as 'treble' | 'bass')}
-                className="form-select"
+                onValueChange={(value) => setClef(value as 'treble' | 'bass')}
               >
-                <option value="treble">Treble</option>
-                <option value="bass">Bass</option>
-              </select>
+                <SelectTrigger id="clef" className="form-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="treble">Treble</SelectItem>
+                  <SelectItem value="bass">Bass</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="form-group">
+            <div className="form-group space-y-2 col-span-2">
               <label htmlFor="duration">Duration</label>
-              <select
-                id="duration"
+              <Select
                 value={duration}
-                onChange={(e) => setDuration(e.target.value as NoteDuration)}
-                className="form-select"
+                onValueChange={(value) => setDuration(value as NoteDuration)}
               >
-                <option value="whole">Whole</option>
-                <option value="half">Half</option>
-                <option value="dotted-half">Dotted Half</option>
-                <option value="quarter">Quarter</option>
-                <option value="dotted-quarter">Dotted Quarter</option>
-                <option value="eighth">Eighth</option>
-                <option value="dotted-eighth">Dotted Eighth</option>
-                <option value="sixteenth">Sixteenth</option>
-              </select>
+                <SelectTrigger id="duration" className="form-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="whole">Whole</SelectItem>
+                  <SelectItem value="half">Half</SelectItem>
+                  <SelectItem value="dotted-half">Dotted Half</SelectItem>
+                  <SelectItem value="quarter">Quarter</SelectItem>
+                  <SelectItem value="dotted-quarter">Dotted Quarter</SelectItem>
+                  <SelectItem value="eighth">Eighth</SelectItem>
+                  <SelectItem value="dotted-eighth">Dotted Eighth</SelectItem>
+                  <SelectItem value="sixteenth">Sixteenth</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="form-group form-info">
+            <div className="form-group form-info col-span-2">
               <label>Position</label>
-              <div className="info-text">
+              <div className="info-text text-sm text-muted-foreground">
                 Measure {event?.position.measureIndex ?? 0}, Beat {event?.position.beatPosition ?? 0}
                 <br />
                 <span className="info-note">(Auto-calculated)</span>
@@ -168,21 +180,21 @@ const NoteEditModal = ({ isOpen, onClose, event, onSave, onDelete }: NoteEditMod
             </div>
           </div>
         </div>
-        <div className="note-edit-modal-footer">
-          <button className="note-edit-delete-btn" onClick={handleDelete}>
+        <DialogFooter className="flex justify-between">
+          <Button variant="destructive" onClick={handleDelete}>
             Delete Note
-          </button>
-          <div className="note-edit-footer-right">
-            <button className="note-edit-cancel-btn" onClick={onClose}>
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button className="note-edit-save-btn" onClick={handleSave}>
+            </Button>
+            <Button onClick={handleSave}>
               Save Changes
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 

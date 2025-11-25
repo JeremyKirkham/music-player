@@ -35,27 +35,7 @@
   font-weight: 600;
 }
 
-.clef-select {
-  padding: 6px 10px;
-  background-color: #1e1e1e;
-  color: #c9d1d9;
-  border: 1px solid #444;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-}
-
-.clef-select:hover {
-  border-color: #61dafb;
-  background-color: #2a2a2a;
-}
-
-.clef-select:focus {
-  outline: none;
-  border-color: #61dafb;
-  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.1);
-}
+/* Clef select styling now handled by shadcn Select component */
 
 .duration-control {
   display: flex;
@@ -69,27 +49,7 @@
   font-weight: 600;
 }
 
-.duration-select {
-  padding: 6px 10px;
-  background-color: #1e1e1e;
-  color: #c9d1d9;
-  border: 1px solid #444;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: all 0.2s;
-}
-
-.duration-select:hover {
-  border-color: #61dafb;
-  background-color: #2a2a2a;
-}
-
-.duration-select:focus {
-  outline: none;
-  border-color: #61dafb;
-  box-shadow: 0 0 0 2px rgba(97, 218, 251, 0.1);
-}
+/* Duration select styling now handled by shadcn Select component */
 
 .keyboard {
   display: flex;
