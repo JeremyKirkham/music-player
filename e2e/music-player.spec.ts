@@ -201,21 +201,6 @@ test.describe('Music Player App', () => {
     const note = page.locator('.note-wrapper').first();
     await expect(note).toHaveCount(1);
     
-    // Debug: Check note position and visibility
-    const noteInfo = await note.evaluate(el => {
-      const htmlEl = el as HTMLElement;
-      return {
-        visible: window.getComputedStyle(el).visibility !== 'hidden',
-        display: window.getComputedStyle(el).display,
-        opacity: window.getComputedStyle(el).opacity,
-        bottom: htmlEl.style.bottom,
-        left: htmlEl.style.left,
-        boundingRect: el.getBoundingClientRect(),
-        offsetParent: htmlEl.offsetParent?.className
-      };
-    });
-    console.log('Note info:', noteInfo);
-    
     // Use force click since note might be partially obscured
     await note.click({ force: true, timeout: 5000 });
     
