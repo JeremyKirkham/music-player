@@ -53,11 +53,23 @@ const Keyboard = ({
     onNotePlayRef.current = onNotePlay
   }, [onNotePlay])
 
-  // Initialize audio context
-  useEffect(() => {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    audioContextRef.current = new (AudioContextClass || AudioContext)()
+  // Initialize audio context lazily (iOS Safari requires user gesture)
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        if (AudioContextClass) {
+          audioContextRef.current = new AudioContextClass()
+        }
+      } catch (error) {
+        console.error('Failed to create AudioContext:', error)
+      }
+    }
+    return audioContextRef.current
+  }, [])
 
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
       if (audioContextRef.current) {
         audioContextRef.current.close()
@@ -190,9 +202,9 @@ const Keyboard = ({
   const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
 
   const playNote = useCallback((frequency: number, noteName: string) => {
-    if (!audioContextRef.current) return
+    const audioContext = getAudioContext()
+    if (!audioContext) return
 
-    const audioContext = audioContextRef.current
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
 
@@ -210,7 +222,7 @@ const Keyboard = ({
 
     // Use the ref to always call the latest callback with the selected clef
     onNotePlayRef.current(noteName, selectedClef)
-  }, [selectedClef]);
+  }, [selectedClef, getAudioContext]);
 
   // Handle keyboard events
   useEffect(() => {
