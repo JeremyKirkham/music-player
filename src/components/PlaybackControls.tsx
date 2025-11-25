@@ -100,7 +100,7 @@ function PlaybackControls({
               <p>Tempo: {tempo} BPM</p>
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent>
+          <DropdownMenuContent className="tempo-dropdown">
             {tempoOptions.map((option) => (
               <DropdownMenuItem
                 key={option.value}

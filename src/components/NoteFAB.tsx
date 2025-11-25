@@ -153,11 +153,11 @@ const NoteFAB = ({ onDelete, onChangeDuration, onChangeAccidental, onClose, posi
               <p>Change duration</p>
             </TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="center" side="top" className="min-w-[180px]">
+          <DropdownMenuContent align="center" side="top" className="min-w-[180px] duration-dropdown">
             {durationOptions.map((option) => (
               <DropdownMenuItem
                 key={option.value}
-                className={currentDuration === option.value ? 'bg-accent' : ''}
+                className={`duration-option ${currentDuration === option.value ? 'bg-accent' : ''}`}
                 onClick={() => handleDurationSelect(option.value)}
               >
                 <span className="text-2xl mr-3">{option.symbol}</span>
