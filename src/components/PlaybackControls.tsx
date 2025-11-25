@@ -74,8 +74,8 @@ function PlaybackControls({
           onClick={togglePlayback}
           className={`playback-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}
           disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}
-          data-tooltip={isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
-          aria-label={isPaused ? 'Resume' : isPlaying ? 'Pause' : 'Play'}
+          data-tooltip={isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}
+          aria-label={isPaused ? 'Resume (spacebar)' : isPlaying ? 'Pause (spacebar)' : 'Play (spacebar)'}
         >
           {isPlaying && !isPaused ? <FaPause /> : <FaPlay />}
         </button>

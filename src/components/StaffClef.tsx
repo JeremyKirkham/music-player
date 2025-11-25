@@ -10,8 +10,9 @@ interface StaffClefProps {
   musicScore: MusicScore
   clefType: 'treble' | 'bass'
   activeEventIds?: Set<string>
-  onNoteClick?: (event: MusicalEvent) => void
   onTimeSignatureClick?: () => void
+  onNoteDrag?: (event: MusicalEvent, positionChange: number) => void
+  onNoteClick?: (event: MusicalEvent, element: HTMLElement) => void
 }
 
 // Staff positioning constants (in pixels from bottom of measure)
@@ -126,7 +127,7 @@ const BASS_NOTE_POSITION_MAP: { [key: string]: number } = {
   'C6': 312,
 } as const
 
-const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteClick, onTimeSignatureClick }: StaffClefProps) => {
+const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onTimeSignatureClick, onNoteDrag, onNoteClick }: StaffClefProps) => {
   const PIXELS_PER_BEAT = 50
 
   // Get note position from the clef-specific map
@@ -275,8 +276,9 @@ const StaffClef = ({ musicScore, clefType, activeEventIds = new Set(), onNoteCli
                   leftPosition={leftPosition}
                   getNotePosition={getNotePosition}
                   isActive={activeEventIds.has(event.id)}
-                  onClick={onNoteClick ? () => onNoteClick(event) : undefined}
                   beamGroupId={event.beamGroupId}
+                  onDragPitchChange={onNoteDrag ? (positionChange) => onNoteDrag(event, positionChange) : undefined}
+                  onClick={onNoteClick ? (element) => onNoteClick(event, element) : undefined}
                 />
               )
             })}

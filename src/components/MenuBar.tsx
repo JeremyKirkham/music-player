@@ -66,7 +66,8 @@ function MenuBar({
         <button
           onClick={handleClearScore}
           className="clear-btn-round"
-          title="Clear Score"
+          data-tooltip="Clear Score"
+          aria-label="Clear Score"
           disabled={musicScore.events.length === 0}
         >
           <FaTrash />
