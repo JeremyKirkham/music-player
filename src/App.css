@@ -149,10 +149,6 @@
     height: 28px;
     font-size: 0.7rem;
   }
-
-  .playback-btn[data-tooltip]::after {
-    font-size: 0.7rem;
-  }
 }
 
 /* Control Groups */
@@ -271,29 +267,7 @@
   box-shadow: none;
 }
 
-/* Tooltip */
-.playback-btn[data-tooltip]::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: -35px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #2d2d2d;
-  color: #c9d1d9;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s;
-  z-index: 10000;
-  border: 1px solid #444;
-}
-
-.playback-btn[data-tooltip]:hover::after {
-  opacity: 1;
-}
+/* Tooltip styles now handled by shadcn Tooltip component */
 
 .playback-btn.play-btn {
   background-color: #44ff44;

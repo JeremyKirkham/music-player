@@ -1,7 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
 import { FaFolderOpen, FaFileAlt, FaTrash, FaEllipsisV } from 'react-icons/fa'
 import type { MusicScore } from '../types/music'
 import PlaybackControls from './PlaybackControls'
+import { Button } from './ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from './ui/tooltip'
 
 interface MenuBarProps {
   musicScore: MusicScore
@@ -28,26 +39,6 @@ function MenuBar({
   setIsLoadSongModalOpen,
   setIsMusicModalOpen,
 }: MenuBarProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false)
-      }
-    }
-
-    if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [isMenuOpen])
-
   return (
     <div className="menu-bar">
       <div className="menu-left">
@@ -63,46 +54,45 @@ function MenuBar({
           tempo={tempo}
           setTempo={setTempo}
         />
-        <button
-          onClick={handleClearScore}
-          className="clear-btn-round"
-          data-tooltip="Clear Score"
-          aria-label="Clear Score"
-          disabled={musicScore.events.length === 0}
-        >
-          <FaTrash />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              onClick={handleClearScore}
+              variant="ghost"
+              size="icon"
+              className="clear-btn-round"
+              aria-label="Clear Score"
+              disabled={musicScore.events.length === 0}
+            >
+              <FaTrash />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Clear Score</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
-      <div className="menu-section menu-dropdown" ref={menuRef}>
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="menu-toggle-btn"
-          title="Menu"
-        >
-          <FaEllipsisV />
-        </button>
-        {isMenuOpen && (
-          <div className="dropdown-menu">
-            <button
-              onClick={() => {
-                setIsLoadSongModalOpen(true)
-                setIsMenuOpen(false)
-              }}
-              className="dropdown-item"
+      <div className="menu-section menu-dropdown">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="menu-toggle-btn"
+              title="Menu"
             >
-              <FaFolderOpen /> Load Song
-            </button>
-            <button
-              onClick={() => {
-                setIsMusicModalOpen(true)
-                setIsMenuOpen(false)
-              }}
-              className="dropdown-item"
-            >
-              <FaFileAlt /> View Score
-            </button>
-          </div>
-        )}
+              <FaEllipsisV />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setIsLoadSongModalOpen(true)}>
+              <FaFolderOpen className="mr-2" /> Load Song
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setIsMusicModalOpen(true)}>
+              <FaFileAlt className="mr-2" /> View Score
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

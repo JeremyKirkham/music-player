@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
 import type { NoteDuration } from '../types/music'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
 
 interface Note {
   name: string
@@ -269,31 +276,37 @@ const Keyboard = ({
         <div className="keyboard-controls">
           <div className="clef-control">
             <label htmlFor="keyboard-clef">Clef:</label>
-            <select
-              id="keyboard-clef"
+            <Select
               value={selectedClef}
-              onChange={(e) => setSelectedClef(e.target.value as 'treble' | 'bass')}
-              className="clef-select"
+              onValueChange={(value) => setSelectedClef(value as 'treble' | 'bass')}
               disabled={!showTrebleClef || !showBassClef}
             >
-              {showTrebleClef && <option value="treble">Treble</option>}
-              {showBassClef && <option value="bass">Bass</option>}
-            </select>
+              <SelectTrigger id="keyboard-clef" className="w-[120px] text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {showTrebleClef && <SelectItem value="treble">Treble</SelectItem>}
+                {showBassClef && <SelectItem value="bass">Bass</SelectItem>}
+              </SelectContent>
+            </Select>
           </div>
           <div className="duration-control">
             <label htmlFor="keyboard-duration">Duration:</label>
-            <select
-              id="keyboard-duration"
+            <Select
               value={currentDuration}
-              onChange={(e) => onDurationChange(e.target.value as NoteDuration)}
-              className="duration-select"
+              onValueChange={(value) => onDurationChange(value as NoteDuration)}
             >
-              <option value="whole">Whole</option>
-              <option value="half">Half</option>
-              <option value="quarter">Quarter</option>
-              <option value="eighth">Eighth</option>
-              <option value="sixteenth">Sixteenth</option>
-            </select>
+              <SelectTrigger id="keyboard-duration" className="w-[130px] text-foreground">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="whole">Whole</SelectItem>
+                <SelectItem value="half">Half</SelectItem>
+                <SelectItem value="quarter">Quarter</SelectItem>
+                <SelectItem value="eighth">Eighth</SelectItem>
+                <SelectItem value="sixteenth">Sixteenth</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

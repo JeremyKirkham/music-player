@@ -1,6 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './LoadSongModal.css'
 import type { MusicScore } from '../types/music'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+import { Button } from './ui/button'
 
 interface LoadSongModalProps {
   isOpen: boolean
@@ -47,64 +63,48 @@ const LoadSongModal = ({ isOpen, onClose, onLoadScore }: LoadSongModalProps) => 
     }
   }
 
-  // Handle escape key to close modal
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose()
-      }
-    }
-
-    if (isOpen) {
-      window.addEventListener('keydown', handleEscape)
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleEscape)
-    }
-  }, [isOpen, onClose])
-
-  if (!isOpen) return null
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content load-song-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Load Demo Song</h2>
-          <button onClick={onClose} className="close-button">×</button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="modal-content load-song-modal">
+        <DialogHeader>
+          <DialogTitle>Load Demo Song</DialogTitle>
+          <DialogDescription>
+            Choose a demo song to load into the player
+          </DialogDescription>
+        </DialogHeader>
         <div className="modal-body">
-          <div className="song-selector">
+          <div className="song-selector space-y-2">
             <label htmlFor="song-select">Select a song:</label>
-            <select
-              id="song-select"
+            <Select
               value={selectedSong}
-              onChange={(e) => setSelectedSong(e.target.value)}
-              className="song-dropdown"
+              onValueChange={setSelectedSong}
             >
-              <option value="">-- Choose a song --</option>
-              {availableSongs.map((song) => (
-                <option key={song.file} value={song.file}>
-                  {song.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger id="song-select" className="song-dropdown">
+                <SelectValue placeholder="-- Choose a song --" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableSongs.map((song) => (
+                  <SelectItem key={song.file} value={song.file}>
+                    {song.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <div className="modal-footer">
-          <button onClick={onClose} className="btn-cancel">
+        <DialogFooter>
+          <Button onClick={onClose} variant="secondary">
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleLoadSong}
-            className="btn-load"
             disabled={!selectedSong || isLoading}
           >
             {isLoading ? 'Loading...' : 'Load Song'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
