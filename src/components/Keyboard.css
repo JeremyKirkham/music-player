@@ -121,6 +121,7 @@
 .note-name {
   font-size: 0.85rem;
   margin-bottom: 5px;
+  pointer-events: none;
 }
 
 .piano-key.black .note-name {
@@ -130,6 +131,7 @@
 .key-label {
   font-size: 0.7rem;
   opacity: 0.7;
+  pointer-events: none;
 }
 
 .piano-key.black .key-label {
