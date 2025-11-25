@@ -43,7 +43,7 @@
   color: white;
   position: absolute;
   left: -22px; /* Center button on the origin */
-  top: -22px;  /* Center button on the origin */
+  top: -22px; /* Center button on the origin */
   margin: 2px; /* Add spacing between buttons */
 }
 

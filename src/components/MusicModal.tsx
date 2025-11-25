@@ -1,4 +1,3 @@
-import './MusicModal.css'
 import type { MusicScore } from '../types/music'
 import {
   Dialog,
@@ -64,10 +63,10 @@ const MusicModal = ({ isOpen, onClose, musicScore }: MusicModalProps) => {
           </pre>
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="redOutline" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={copyToClipboard}>
+          <Button variant="green" onClick={copyToClipboard}>
             Copy to Clipboard
           </Button>
         </DialogFooter>

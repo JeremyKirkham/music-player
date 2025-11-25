@@ -58,7 +58,7 @@ function MenuBar({
           <TooltipTrigger asChild>
             <Button
               onClick={handleClearScore}
-              variant="ghost"
+              variant="destructive"
               size="icon"
               className="clear-btn-round"
               aria-label="Clear Score"

@@ -51,7 +51,7 @@ function PlaybackControls({
           <TooltipTrigger asChild>
             <Button
               onClick={stopPlayback}
-              variant="ghost"
+              variant="redOutline"
               size="icon"
               className="playback-btn stop-btn"
               disabled={!isPlaying && !isPaused}
@@ -68,7 +68,7 @@ function PlaybackControls({
           <TooltipTrigger asChild>
             <Button
               onClick={togglePlayback}
-              variant="ghost"
+              variant="green"
               size="icon"
               className={`playback-btn ${isPlaying && !isPaused ? 'pause-btn' : 'play-btn'}`}
               disabled={musicScore.events.length === 0 && !isPlaying && !isPaused}
