@@ -4,6 +4,7 @@ import Keyboard from './components/Keyboard'
 import MusicModal from './components/MusicModal'
 import NoteEditModal from './components/NoteEditModal'
 import LoadSongModal from './components/LoadSongModal'
+import TimeSignatureModal from './components/TimeSignatureModal'
 import MenuBar from './components/MenuBar'
 import './App.css'
 import type { MusicScore, NoteDuration, MusicalEvent, TimeSignature } from './types/music'
@@ -50,11 +51,14 @@ function App() {
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false)
   const [isLoadSongModalOpen, setIsLoadSongModalOpen] = useState(false)
   const [isNoteEditModalOpen, setIsNoteEditModalOpen] = useState(false)
+  const [isTimeSignatureModalOpen, setIsTimeSignatureModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<MusicalEvent | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [isPaused, setIsPaused] = useState(false)
   const [activeEventIds, setActiveEventIds] = useState<Set<string>>(new Set())
   const [activeNotes, setActiveNotes] = useState<Set<string>>(new Set())
+  const [showTrebleClef, setShowTrebleClef] = useState(true)
+  const [showBassClef, setShowBassClef] = useState(false)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const scheduledTimeoutsRef = useRef<number[]>([])
@@ -547,14 +551,10 @@ function App() {
 
   return (
     <div className="app">
-      <div className="title-bar">
-        <h1>Music Player</h1>
-      </div>
       <MenuBar
         musicScore={musicScore}
         tempo={tempo}
         setTempo={setTempo}
-        updateTimeSignature={updateTimeSignature}
         isPlaying={isPlaying}
         isPaused={isPaused}
         togglePlayback={togglePlayback}
@@ -567,12 +567,19 @@ function App() {
         musicScore={musicScore}
         activeEventIds={activeEventIds}
         onNoteClick={handleNoteClick}
+        onTimeSignatureClick={() => setIsTimeSignatureModalOpen(true)}
+        showTrebleClef={showTrebleClef}
+        setShowTrebleClef={setShowTrebleClef}
+        showBassClef={showBassClef}
+        setShowBassClef={setShowBassClef}
       />
       <Keyboard
         onNotePlay={handleNotePlay}
         activeNotes={activeNotes}
         currentDuration={currentDuration}
         onDurationChange={setCurrentDuration}
+        showTrebleClef={showTrebleClef}
+        showBassClef={showBassClef}
       />
       <MusicModal
         isOpen={isMusicModalOpen}
@@ -591,6 +598,12 @@ function App() {
         event={selectedEvent}
         onSave={handleSaveNote}
         onDelete={handleDeleteNote}
+      />
+      <TimeSignatureModal
+        isOpen={isTimeSignatureModalOpen}
+        onClose={() => setIsTimeSignatureModalOpen(false)}
+        currentTimeSignature={musicScore.timeSignature}
+        onSelect={updateTimeSignature}
       />
     </div>
   )

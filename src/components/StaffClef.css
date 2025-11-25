@@ -38,6 +38,20 @@
   z-index: 3;
 }
 
+.time-signature-display.clickable {
+  cursor: pointer;
+  transition: transform 0.1s ease, color 0.2s ease;
+}
+
+.time-signature-display.clickable:hover {
+  color: #4fa8c5;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.time-signature-display.clickable:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
 .time-sig-top,
 .time-sig-bottom {
   line-height: 1;

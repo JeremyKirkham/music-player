@@ -7,6 +7,51 @@
   margin: 20px 10px;
 }
 
+.clef-controls {
+  position: absolute;
+  top: 10px;
+  left: 20px;
+  display: flex;
+  gap: 20px;
+  z-index: 10;
+}
+
+.clef-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #61dafb;
+  font-size: 0.95rem;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.2s ease;
+}
+
+.clef-checkbox-label:hover {
+  opacity: 0.8;
+}
+
+.clef-checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.clef-checkbox-label input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.clef-symbol-label {
+  font-size: 1.5rem;
+  line-height: 1;
+  margin-top: -2px;
+}
+
+.clef-symbol-label.bass {
+  font-size: 1.3rem;
+}
+
 .fixed-staff-lines-container {
   position: absolute;
   left: 0;

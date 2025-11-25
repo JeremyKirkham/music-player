@@ -7,16 +7,33 @@ interface MusicalStaffProps {
   musicScore: MusicScore
   activeEventIds?: Set<string>
   onNoteClick?: (event: MusicalEvent) => void
+  onTimeSignatureClick?: () => void
+  showTrebleClef?: boolean
+  setShowTrebleClef?: (show: boolean) => void
+  showBassClef?: boolean
+  setShowBassClef?: (show: boolean) => void
 }
 
-const MusicalStaff = ({ musicScore, activeEventIds = new Set(), onNoteClick }: MusicalStaffProps) => {
+const MusicalStaff = ({
+  musicScore,
+  activeEventIds = new Set(),
+  onNoteClick,
+  onTimeSignatureClick,
+  showTrebleClef = true,
+  setShowTrebleClef,
+  showBassClef = true,
+  setShowBassClef,
+}: MusicalStaffProps) => {
   const staffContainerRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const PIXELS_PER_BEAT = 50
   const MEASURE_GAP = 40
   const STAFF_HEIGHT = 220 // Height of each StaffClef
-  const TOTAL_STAFF_HEIGHT = STAFF_HEIGHT * 2 // Treble + Bass
+
+  // Calculate total height based on visible clefs
+  const visibleClefs = (showTrebleClef ? 1 : 0) + (showBassClef ? 1 : 0)
+  const TOTAL_STAFF_HEIGHT = STAFF_HEIGHT * visibleClefs
 
   // Calculate and apply scale factor to fit available height
   useEffect(() => {
@@ -39,7 +56,7 @@ const MusicalStaff = ({ musicScore, activeEventIds = new Set(), onNoteClick }: M
     resizeObserver.observe(containerRef.current)
 
     return () => resizeObserver.disconnect()
-  }, [TOTAL_STAFF_HEIGHT])
+  }, [TOTAL_STAFF_HEIGHT, showTrebleClef, showBassClef])
 
   // Auto-scroll to keep active measure in view
   useEffect(() => {
@@ -89,38 +106,79 @@ const MusicalStaff = ({ musicScore, activeEventIds = new Set(), onNoteClick }: M
 
   return (
     <div className="musical-staff-container" ref={containerRef}>
+      {/* Clef visibility controls */}
+      <div className="clef-controls">
+        <label className="clef-checkbox-label">
+          <input
+            type="checkbox"
+            checked={showTrebleClef}
+            onChange={(e) => {
+              // Prevent unchecking if it's the only one checked
+              if (!e.target.checked && !showBassClef) return
+              setShowTrebleClef?.(e.target.checked)
+            }}
+            disabled={showTrebleClef && !showBassClef}
+          />
+          <span className="clef-symbol-label treble">𝄞</span>
+          <span>Treble</span>
+        </label>
+        <label className="clef-checkbox-label">
+          <input
+            type="checkbox"
+            checked={showBassClef}
+            onChange={(e) => {
+              // Prevent unchecking if it's the only one checked
+              if (!e.target.checked && !showTrebleClef) return
+              setShowBassClef?.(e.target.checked)
+            }}
+            disabled={showBassClef && !showTrebleClef}
+          />
+          <span className="clef-symbol-label bass">𝄢</span>
+          <span>Bass</span>
+        </label>
+      </div>
       {/* Fixed staff lines that don't scroll */}
       <div className="fixed-staff-lines-container">
-        <div className="fixed-staff-clef">
-          <div className="staff-lines">
-            {[0, 1, 2, 3, 4].map((line) => (
-              <div key={`treble-${line}`} className="staff-line" />
-            ))}
+        {showTrebleClef && (
+          <div className="fixed-staff-clef">
+            <div className="staff-lines">
+              {[0, 1, 2, 3, 4].map((line) => (
+                <div key={`treble-${line}`} className="staff-line" />
+              ))}
+            </div>
           </div>
-        </div>
-        <div className="fixed-staff-clef">
-          <div className="staff-lines">
-            {[0, 1, 2, 3, 4].map((line) => (
-              <div key={`bass-${line}`} className="staff-line" />
-            ))}
+        )}
+        {showBassClef && (
+          <div className="fixed-staff-clef">
+            <div className="staff-lines">
+              {[0, 1, 2, 3, 4].map((line) => (
+                <div key={`bass-${line}`} className="staff-line" />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Scrollable content */}
       <div className="staff-wrapper" ref={staffContainerRef}>
-        <StaffClef
-          musicScore={musicScore}
-          clefType="treble"
-          activeEventIds={activeEventIds}
-          onNoteClick={onNoteClick}
-        />
-        <StaffClef
-          musicScore={musicScore}
-          clefType="bass"
-          activeEventIds={activeEventIds}
-          onNoteClick={onNoteClick}
-        />
+        {showTrebleClef && (
+          <StaffClef
+            musicScore={musicScore}
+            clefType="treble"
+            activeEventIds={activeEventIds}
+            onNoteClick={onNoteClick}
+            onTimeSignatureClick={onTimeSignatureClick}
+          />
+        )}
+        {showBassClef && (
+          <StaffClef
+            musicScore={musicScore}
+            clefType="bass"
+            activeEventIds={activeEventIds}
+            onNoteClick={onNoteClick}
+            onTimeSignatureClick={onTimeSignatureClick}
+          />
+        )}
       </div>
     </div>
   )
