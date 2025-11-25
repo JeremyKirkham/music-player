@@ -3,6 +3,15 @@ import { test, expect } from '@playwright/test';
 test.describe('Music Player App', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // Clear localStorage to ensure clean state
+    await page.evaluate(() => localStorage.clear());
+    // Reload page after clearing storage
+    await page.reload();
+  });
+
+  test.afterEach(async ({ page }) => {
+    // Clean up localStorage after each test
+    await page.evaluate(() => localStorage.clear());
   });
 
   test('should display the music player title', async ({ page }) => {
