@@ -68,16 +68,19 @@ function App() {
   const startTimeRef = useRef<number>(0)
   const scheduledEventsRef = useRef<Array<{ event: MusicalEvent; startTime: number; duration: number }>>([])
 
-  // Initialize audio context
-  useEffect(() => {
-    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    audioContextRef.current = new (AudioContextClass || AudioContext)()
-
-    return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
+  // Initialize audio context lazily (iOS Safari requires user gesture)
+  const getAudioContext = useCallback(() => {
+    if (!audioContextRef.current) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+        if (AudioContextClass) {
+          audioContextRef.current = new AudioContextClass()
+        }
+      } catch (error) {
+        console.error('Failed to create AudioContext:', error)
       }
     }
+    return audioContextRef.current
   }, [])
 
   // Cleanup on unmount
@@ -85,6 +88,9 @@ function App() {
     return () => {
       scheduledTimeoutsRef.current.forEach(clearTimeout)
       scheduledTimeoutsRef.current = []
+      if (audioContextRef.current) {
+        audioContextRef.current.close()
+      }
     }
   }, [])
 
@@ -136,7 +142,7 @@ function App() {
 
       // Only schedule events that haven't played yet
       if (timeUntilStart > 0) {
-        if (event.type === 'note' && event.notes && audioContextRef.current) {
+        if (event.type === 'note' && event.notes) {
           const notes = event.notes
 
           const timeoutId = window.setTimeout(() => {
@@ -161,8 +167,9 @@ function App() {
             // Play sounds
             notes.forEach(note => {
               const frequency = getNoteFrequency(note)
-              if (audioContextRef.current) {
-                playNoteSound(audioContextRef.current, frequency, duration)
+              const audioContext = getAudioContext()
+              if (audioContext) {
+                playNoteSound(audioContext, frequency, duration)
               }
             })
 
@@ -200,7 +207,7 @@ function App() {
       }, remainingTime * 1000)
       scheduledTimeoutsRef.current.push(stopTimeoutId)
     }
-  }, [isPlaying, isPaused, stopPlayback])
+  }, [isPlaying, isPaused, stopPlayback, getAudioContext])
 
   const startPlayback = useCallback(() => {
     if (musicScore.events.length === 0) return
@@ -226,7 +233,7 @@ function App() {
 
     // Play each note at its scheduled time
     scheduledNotes.forEach(({ event, startTime, duration }) => {
-      if (event.type === 'note' && event.notes && audioContextRef.current) {
+      if (event.type === 'note' && event.notes) {
         const notes = event.notes
 
         const timeoutId = window.setTimeout(() => {
@@ -251,8 +258,9 @@ function App() {
           // Play sounds
           notes.forEach(note => {
             const frequency = getNoteFrequency(note)
-            if (audioContextRef.current) {
-              playNoteSound(audioContextRef.current, frequency, duration)
+            const audioContext = getAudioContext()
+            if (audioContext) {
+              playNoteSound(audioContext, frequency, duration)
             }
           })
 
@@ -283,7 +291,7 @@ function App() {
       }, totalDuration * 1000)
       scheduledTimeoutsRef.current.push(stopTimeoutId)
     }
-  }, [musicScore.events, musicScore.timeSignature.numerator, tempo, stopPlayback])
+  }, [musicScore.events, musicScore.timeSignature.numerator, tempo, stopPlayback, getAudioContext])
 
   const togglePlayback = useCallback(() => {
     if (isPaused) {
