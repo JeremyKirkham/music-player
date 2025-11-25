@@ -328,10 +328,10 @@ test.describe('Music Player App', () => {
   test('should work with touch events on mobile', async ({ page }) => {
     // Set mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
-    
-    // Add a note
+
+    // Add a note - use force: true because black keys may overlap white keys on mobile
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
-    await cKey.click();
+    await cKey.click({ force: true });
     
     // Click on the note to open FAB menu (use click instead of tap for testing)
     const note = page.locator('.note-wrapper').first();
