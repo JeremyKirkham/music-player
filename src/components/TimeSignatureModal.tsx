@@ -2,8 +2,6 @@ import type { TimeSignature } from '../types/music'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from './ui/dialog'
