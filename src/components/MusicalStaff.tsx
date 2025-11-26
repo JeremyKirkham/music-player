@@ -54,10 +54,16 @@ const MusicalStaff = ({
     updateScale()
 
     // Update scale on window resize
-    const resizeObserver = new ResizeObserver(updateScale)
-    resizeObserver.observe(containerRef.current)
-
-    return () => resizeObserver.disconnect()
+    const container = containerRef.current
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver(updateScale)
+      resizeObserver.observe(container)
+      return () => resizeObserver.disconnect()
+    } else {
+      // Fallback to window resize event for older browsers
+      window.addEventListener('resize', updateScale)
+      return () => window.removeEventListener('resize', updateScale)
+    }
   }, [TOTAL_STAFF_HEIGHT, showTrebleClef, showBassClef])
 
   // Auto-scroll to keep active measure in view
