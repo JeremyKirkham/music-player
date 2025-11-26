@@ -361,13 +361,8 @@ test.describe('Music Player App', () => {
     const keyboard = page.locator('.keyboard');
     await expect(keyboard).toBeVisible();
 
-    // Get three keys to press simultaneously (C, E, G - C major chord)
-    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
-    const eKey = page.locator('.piano-key').filter({ hasText: 'E4' }).first();
-    const gKey = page.locator('.piano-key').filter({ hasText: 'G4' }).first();
-
     // Press all three keys using keyboard shortcuts (hold down multiple keys)
-    // C4 = 'a', E4 = 'd', G4 = 'g'
+    // C4 = 'a', E4 = 'd', G4 = 'g' (C major chord)
     await page.keyboard.down('a');
     await page.keyboard.down('d');
     await page.keyboard.down('g');

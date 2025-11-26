@@ -40,8 +40,8 @@ const Keyboard = ({
   const [selectedClef, setSelectedClef] = useState<'treble' | 'bass'>('treble')
 
   // Chord detection state
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set())
-  const [pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass' }>>([])
+  const [_pressedKeys, setPressedKeys] = useState<Set<string>>(new Set())
+  const [_pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass' }>>([])
   const chordTimerRef = useRef<number | null>(null)
   const CHORD_WINDOW_MS = 150
 
