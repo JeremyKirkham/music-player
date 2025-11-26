@@ -98,15 +98,18 @@ const Keyboard = ({
     // Update on window resize
     window.addEventListener('resize', updateDimensions)
 
-    // Use ResizeObserver for more accurate updates
-    const resizeObserver = new ResizeObserver(updateDimensions)
-    if (keyboardRef.current) {
+    // Use ResizeObserver for more accurate updates (if available)
+    let resizeObserver: ResizeObserver | null = null
+    if (typeof ResizeObserver !== 'undefined' && keyboardRef.current) {
+      resizeObserver = new ResizeObserver(updateDimensions)
       resizeObserver.observe(keyboardRef.current)
     }
 
     return () => {
       window.removeEventListener('resize', updateDimensions)
-      resizeObserver.disconnect()
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+      }
     }
   }, [])
 
