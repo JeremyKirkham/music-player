@@ -77,7 +77,7 @@ const MusicalStaff = ({
     if (!activeEvent) return
 
     // Calculate the horizontal position of the active measure
-    const measureWidth = 50 * musicScore.timeSignature.numerator + 40
+    const measureWidth = PIXELS_PER_BEAT * musicScore.timeSignature.numerator
     const measureIndex = activeEvent.position.measureIndex
 
     // Calculate the start and end position of the entire measure
@@ -89,18 +89,20 @@ const MusicalStaff = ({
     const containerWidth = container.clientWidth
     const scrollLeft = container.scrollLeft
 
+    // Add padding to ensure measure is comfortably visible
+    const padding = 100
+
     // Check if the entire measure is visible
     const viewportStart = scrollLeft
     const viewportEnd = scrollLeft + containerWidth
 
     // If the measure is not fully visible, scroll to show it
-    if (measureStartX < viewportStart) {
-      // Measure is off the left edge, scroll to show the start of the measure
-      container.scrollTo({ left: measureStartX, behavior: 'smooth' })
-    } else if (measureEndX > viewportEnd) {
-      // Measure is off the right edge, scroll to show the entire measure
-      // Position the measure so it fits comfortably in the viewport
-      const scrollTarget = Math.max(0, measureEndX - containerWidth + 20) // Add small padding
+    if (measureStartX < viewportStart + padding) {
+      // Measure is off the left edge, scroll to show the start of the measure with padding
+      container.scrollTo({ left: Math.max(0, measureStartX - padding), behavior: 'smooth' })
+    } else if (measureEndX > viewportEnd - padding) {
+      // Measure is off the right edge, scroll to show the entire measure with padding
+      const scrollTarget = measureEndX - containerWidth + padding
       container.scrollTo({ left: scrollTarget, behavior: 'smooth' })
     }
   }, [activeEventIds, musicScore.events, musicScore.timeSignature.numerator, PIXELS_PER_BEAT, MEASURE_GAP])
