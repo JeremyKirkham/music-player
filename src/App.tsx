@@ -436,20 +436,20 @@ function App() {
   }, [togglePlayback, musicScore, historyIndex, history, undo, redo, updateScoreWithHistory])
 
   // Handle note play from keyboard
-  const handleNotePlay = (noteName: string, clef: 'treble' | 'bass') => {
+  const handleNotePlay = (noteNames: string[], clef: 'treble' | 'bass') => {
     const position = getCurrentPosition(musicScore, musicScore.timeSignature)
-    const parsedNote = parseNoteString(noteName)
+
+    // Parse all note names into Note objects
+    const notes = noteNames.map(noteName => ({
+      ...parseNoteString(noteName),
+      clef: clef,
+    }))
 
     const event: MusicalEvent = {
       id: generateId(),
       type: 'note',
       duration: currentDuration,
-      notes: [
-        {
-          ...parsedNote,
-          clef: clef,
-        },
-      ],
+      notes: notes, // Array of notes (chord if length > 1)
       position,
     }
 

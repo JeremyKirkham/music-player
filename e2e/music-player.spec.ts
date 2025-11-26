@@ -66,11 +66,13 @@ test.describe('Music Player App', () => {
   });
 
   test('should clear all notes when clicking clear button', async ({ page }) => {
-    // Add a few notes
+    // Add a few notes (wait between clicks to avoid chord detection)
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
+    await page.waitForTimeout(200); // Wait longer than chord window (150ms)
     await cKey.click();
-    
+    await page.waitForTimeout(200);
+
     // Verify notes were added
     const notesBeforeClear = page.locator('.note-wrapper');
     await expect(notesBeforeClear).toHaveCount(2);
@@ -152,11 +154,13 @@ test.describe('Music Player App', () => {
   });
 
   test('should delete last note with backspace key', async ({ page }) => {
-    // Add two notes
+    // Add two notes (wait between clicks to avoid chord detection)
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click();
+    await page.waitForTimeout(200); // Wait longer than chord window (150ms)
     await cKey.click();
-    
+    await page.waitForTimeout(200);
+
     // Verify two notes were added
     let notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(2);
@@ -332,23 +336,124 @@ test.describe('Music Player App', () => {
     // Add a note - use force: true because black keys may overlap white keys on mobile
     const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
     await cKey.click({ force: true });
-    
+
     // Click on the note to open FAB menu (use click instead of tap for testing)
     const note = page.locator('.note-wrapper').first();
     await expect(note).toHaveCount(1);
     await note.scrollIntoViewIfNeeded();
     await note.click();
-    
+
     // Wait for FAB to appear
     const fabContainer = page.locator('.note-fab-container');
     await expect(fabContainer).toBeVisible({ timeout: 2000 });
-    
+
     // Click delete button
     const deleteButton = page.locator('.delete-button');
     await deleteButton.click();
-    
+
     // Verify note is deleted
     const notes = page.locator('.note-wrapper');
     await expect(notes).toHaveCount(0);
+  });
+
+  test('should record a chord when multiple keys pressed simultaneously', async ({ page }) => {
+    // Wait for keyboard to be ready
+    const keyboard = page.locator('.keyboard');
+    await expect(keyboard).toBeVisible();
+
+    // Get three keys to press simultaneously (C, E, G - C major chord)
+    const cKey = page.locator('.piano-key').filter({ hasText: 'C4' }).first();
+    const eKey = page.locator('.piano-key').filter({ hasText: 'E4' }).first();
+    const gKey = page.locator('.piano-key').filter({ hasText: 'G4' }).first();
+
+    // Press all three keys using keyboard shortcuts (hold down multiple keys)
+    // C4 = 'a', E4 = 'd', G4 = 'g'
+    await page.keyboard.down('a');
+    await page.keyboard.down('d');
+    await page.keyboard.down('g');
+
+    // Wait a bit to ensure all keys are registered
+    await page.waitForTimeout(50);
+
+    // Release all keys
+    await page.keyboard.up('a');
+    await page.keyboard.up('d');
+    await page.keyboard.up('g');
+
+    // Wait for the chord detection window to commit the chord
+    await page.waitForTimeout(200);
+
+    // Should create only ONE event (a chord) instead of three separate notes
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(1);
+  });
+
+  test('should record sequential notes separately when pressed slowly', async ({ page }) => {
+    // Wait for keyboard to be ready
+    const keyboard = page.locator('.keyboard');
+    await expect(keyboard).toBeVisible();
+
+    // Press keys one at a time with sufficient delay
+    await page.keyboard.press('a'); // C4
+    await page.waitForTimeout(200); // Wait longer than chord window (150ms)
+
+    await page.keyboard.press('d'); // E4
+    await page.waitForTimeout(200);
+
+    await page.keyboard.press('g'); // G4
+    await page.waitForTimeout(200);
+
+    // Should create THREE separate notes
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(3);
+  });
+
+  test('should record chord when keys pressed rapidly in sequence', async ({ page }) => {
+    // Wait for keyboard to be ready
+    const keyboard = page.locator('.keyboard');
+    await expect(keyboard).toBeVisible();
+
+    // Press keys rapidly in sequence (within 150ms window)
+    await page.keyboard.down('a'); // C4
+    await page.waitForTimeout(30);
+    await page.keyboard.down('d'); // E4
+    await page.waitForTimeout(30);
+    await page.keyboard.down('g'); // G4
+    await page.waitForTimeout(30);
+
+    // Release all keys
+    await page.keyboard.up('a');
+    await page.keyboard.up('d');
+    await page.keyboard.up('g');
+
+    // Wait for commit
+    await page.waitForTimeout(200);
+
+    // Should create ONE chord event
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(1);
+  });
+
+  test('should play all notes in chord simultaneously during playback', async ({ page }) => {
+    // Create a chord by pressing keys simultaneously
+    await page.keyboard.down('a'); // C4
+    await page.keyboard.down('d'); // E4
+    await page.keyboard.down('g'); // G4
+    await page.waitForTimeout(50);
+    await page.keyboard.up('a');
+    await page.keyboard.up('d');
+    await page.keyboard.up('g');
+    await page.waitForTimeout(200);
+
+    // Verify chord was created
+    const notes = page.locator('.note-wrapper');
+    await expect(notes).toHaveCount(1);
+
+    // Click play button
+    const playButton = page.getByRole('button', { name: /play|▶/i });
+    await playButton.click();
+
+    // During playback, all keys in the chord should become active
+    await expect(page.locator('.piano-key.active')).toHaveCount(3, { timeout: 1000 });
   });
 });

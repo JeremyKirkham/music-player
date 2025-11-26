@@ -17,7 +17,7 @@ interface Note {
 }
 
 interface KeyboardProps {
-  onNotePlay: (note: string, clef: 'treble' | 'bass') => void
+  onNotePlay: (notes: string[], clef: 'treble' | 'bass') => void
   activeNotes?: Set<string>
   currentDuration: NoteDuration
   onDurationChange: (duration: NoteDuration) => void
@@ -38,6 +38,12 @@ const Keyboard = ({
   const onNotePlayRef = useRef(onNotePlay)
   const [keyDimensions, setKeyDimensions] = useState({ whiteKeyWidth: 60, blackKeyWidth: 40 })
   const [selectedClef, setSelectedClef] = useState<'treble' | 'bass'>('treble')
+
+  // Chord detection state
+  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set())
+  const [pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass' }>>([])
+  const chordTimerRef = useRef<number | null>(null)
+  const CHORD_WINDOW_MS = 150
 
   // Auto-switch to visible clef if current one is hidden
   useEffect(() => {
@@ -74,6 +80,37 @@ const Keyboard = ({
       if (audioContextRef.current) {
         audioContextRef.current.close()
       }
+      // Clear chord timer on unmount
+      if (chordTimerRef.current !== null) {
+        clearTimeout(chordTimerRef.current)
+      }
+    }
+  }, [])
+
+  // Commit pending notes as a chord or single note
+  const commitPendingNotes = useCallback(() => {
+    // Use a ref to get the current pending notes state
+    // This ensures we get the latest value even when called from timeouts
+    setPendingNotes(currentPending => {
+      if (currentPending.length === 0) return currentPending
+
+      // Extract note names from buffer
+      const noteNames = currentPending.map(n => n.name)
+
+      // All notes in a chord should use the same clef (the one selected when first key was pressed)
+      const clef = currentPending[0].clef
+
+      // Call parent handler with array of notes
+      onNotePlayRef.current(noteNames, clef)
+
+      // Clear the buffer by returning empty array
+      return []
+    })
+
+    // Clear timer reference
+    if (chordTimerRef.current !== null) {
+      clearTimeout(chordTimerRef.current)
+      chordTimerRef.current = null
     }
   }, [])
 
@@ -223,9 +260,22 @@ const Keyboard = ({
     oscillator.start(audioContext.currentTime)
     oscillator.stop(audioContext.currentTime + 0.5)
 
-    // Use the ref to always call the latest callback with the selected clef
-    onNotePlayRef.current(noteName, selectedClef)
-  }, [selectedClef, getAudioContext]);
+    // Add note to pending buffer
+    setPendingNotes(prev => {
+      const newPending = [...prev, { name: noteName, frequency, clef: selectedClef }]
+
+      // Only start timer if this is the first note in the buffer
+      if (prev.length === 0) {
+        // Start the chord detection window
+        chordTimerRef.current = window.setTimeout(() => {
+          commitPendingNotes()
+        }, CHORD_WINDOW_MS)
+      }
+      // Otherwise, just add to the buffer (don't restart timer)
+
+      return newPending
+    })
+  }, [selectedClef, getAudioContext, CHORD_WINDOW_MS, commitPendingNotes]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -239,6 +289,9 @@ const Keyboard = ({
       const note = notes.find(n => n.key === key)
 
       if (note && !event.repeat) {
+        // Track pressed key
+        setPressedKeys(prev => new Set([...prev, key]))
+
         playNote(note.frequency, note.name)
 
         // Add visual feedback
@@ -250,9 +303,33 @@ const Keyboard = ({
       }
     }
 
+    const handleKeyUp = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase()
+
+      // Remove key from pressed keys
+      setPressedKeys(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(key)
+
+        // If all keys are released, commit immediately
+        if (newSet.size === 0) {
+          // Use timeout to ensure state updates have been processed
+          setTimeout(() => {
+            commitPendingNotes()
+          }, 0)
+        }
+
+        return newSet
+      })
+    }
+
     window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [notes, selectedClef, playNote])
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [notes, selectedClef, playNote, commitPendingNotes])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
