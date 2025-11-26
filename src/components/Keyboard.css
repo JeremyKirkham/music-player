@@ -37,19 +37,22 @@
 
 /* Clef select styling now handled by shadcn Select component */
 
-.duration-control {
+.duration-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.duration-control label {
-  color: #61dafb;
+  padding: 8px 16px;
+  background: #61dafb;
+  color: #1a1a1a;
+  border-radius: 4px;
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 500;
+  text-transform: capitalize;
 }
 
-/* Duration select styling now handled by shadcn Select component */
+.duration-indicator strong {
+  font-weight: 700;
+}
 
 .keyboard {
   display: flex;

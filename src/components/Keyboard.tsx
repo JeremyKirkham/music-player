@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import './Keyboard.css'
 import type { NoteDuration } from '../types/music'
+import { getDurationInBeats } from '../utils/playbackUtilities'
 import {
   Select,
   SelectContent,
@@ -9,6 +10,15 @@ import {
   SelectValue,
 } from './ui/select'
 
+// Duration progression based on hold time
+const getDurationFromHoldTime = (holdTimeMs: number): NoteDuration => {
+  if (holdTimeMs < 50) return 'sixteenth'      // 0-49ms
+  if (holdTimeMs < 150) return 'eighth'        // 50-149ms
+  if (holdTimeMs < 300) return 'quarter'       // 150-299ms
+  if (holdTimeMs < 700) return 'half'          // 300-699ms
+  return 'whole'                               // 700ms+
+}
+
 interface Note {
   name: string
   frequency: number
@@ -16,11 +26,106 @@ interface Note {
   isBlack?: boolean
 }
 
+// Keyboard layout - shared keys across both clefs
+const KEYS = {
+  oct1: ['a', 'w', 's', 'e', 'd', 'f', 't', 'g', 'y', 'h', 'u', 'j'],
+  oct2: ['k', 'o', 'l', 'p', ';', 'z', 'x', 'c', 'v', 'b', 'n', 'm'],
+  oct3: [',', '1', '.', '2', '/', 'q', '3', 'r', '4', 'i', '5', '['],
+  final: ']',
+}
+
+// Shared octave definitions
+const C4_OCTAVE: Note[] = [
+  { name: 'C4', frequency: 261.63, key: KEYS.oct1[0] },
+  { name: 'C#4', frequency: 277.18, key: KEYS.oct1[1], isBlack: true },
+  { name: 'D4', frequency: 293.66, key: KEYS.oct1[2] },
+  { name: 'D#4', frequency: 311.13, key: KEYS.oct1[3], isBlack: true },
+  { name: 'E4', frequency: 329.63, key: KEYS.oct1[4] },
+  { name: 'F4', frequency: 349.23, key: KEYS.oct1[5] },
+  { name: 'F#4', frequency: 369.99, key: KEYS.oct1[6], isBlack: true },
+  { name: 'G4', frequency: 392.00, key: KEYS.oct1[7] },
+  { name: 'G#4', frequency: 415.30, key: KEYS.oct1[8], isBlack: true },
+  { name: 'A4', frequency: 440.00, key: KEYS.oct1[9] },
+  { name: 'A#4', frequency: 466.16, key: KEYS.oct1[10], isBlack: true },
+  { name: 'B4', frequency: 493.88, key: KEYS.oct1[11] },
+]
+
+// For bass clef, map C4 octave to oct3 keys
+const C4_OCTAVE_BASS: Note[] = C4_OCTAVE.map((oc, index) => ({
+  ...oc, key: KEYS.oct3[index]
+}));
+
+// Treble clef notes (C4 to C7)
+const TREBLE_NOTES: Note[] = [
+  // C4 octave
+  ...C4_OCTAVE,
+  // C5 octave
+  { name: 'C5', frequency: 523.25, key: KEYS.oct2[0] },
+  { name: 'C#5', frequency: 554.37, key: KEYS.oct2[1], isBlack: true },
+  { name: 'D5', frequency: 587.33, key: KEYS.oct2[2] },
+  { name: 'D#5', frequency: 622.25, key: KEYS.oct2[3], isBlack: true },
+  { name: 'E5', frequency: 659.25, key: KEYS.oct2[4] },
+  { name: 'F5', frequency: 698.46, key: KEYS.oct2[5] },
+  { name: 'F#5', frequency: 739.99, key: KEYS.oct2[6], isBlack: true },
+  { name: 'G5', frequency: 783.99, key: KEYS.oct2[7] },
+  { name: 'G#5', frequency: 830.61, key: KEYS.oct2[8], isBlack: true },
+  { name: 'A5', frequency: 880.00, key: KEYS.oct2[9] },
+  { name: 'A#5', frequency: 932.33, key: KEYS.oct2[10], isBlack: true },
+  { name: 'B5', frequency: 987.77, key: KEYS.oct2[11] },
+  // C6 octave
+  { name: 'C6', frequency: 1046.50, key: KEYS.oct3[0] },
+  { name: 'C#6', frequency: 1108.73, key: KEYS.oct3[1], isBlack: true },
+  { name: 'D6', frequency: 1174.66, key: KEYS.oct3[2] },
+  { name: 'D#6', frequency: 1244.51, key: KEYS.oct3[3], isBlack: true },
+  { name: 'E6', frequency: 1318.51, key: KEYS.oct3[4] },
+  { name: 'F6', frequency: 1396.91, key: KEYS.oct3[5] },
+  { name: 'F#6', frequency: 1479.98, key: KEYS.oct3[6], isBlack: true },
+  { name: 'G6', frequency: 1567.98, key: KEYS.oct3[7] },
+  { name: 'G#6', frequency: 1661.22, key: KEYS.oct3[8], isBlack: true },
+  { name: 'A6', frequency: 1760.00, key: KEYS.oct3[9] },
+  { name: 'A#6', frequency: 1864.66, key: KEYS.oct3[10], isBlack: true },
+  { name: 'B6', frequency: 1975.53, key: KEYS.oct3[11] },
+  // C7
+  { name: 'C7', frequency: 2093.00, key: KEYS.final },
+]
+
+// Bass clef notes (C2 to C5)
+const BASS_NOTES: Note[] = [
+  // C2 octave
+  { name: 'C2', frequency: 65.41, key: KEYS.oct1[0] },
+  { name: 'C#2', frequency: 69.30, key: KEYS.oct1[1], isBlack: true },
+  { name: 'D2', frequency: 73.42, key: KEYS.oct1[2] },
+  { name: 'D#2', frequency: 77.78, key: KEYS.oct1[3], isBlack: true },
+  { name: 'E2', frequency: 82.41, key: KEYS.oct1[4] },
+  { name: 'F2', frequency: 87.31, key: KEYS.oct1[5] },
+  { name: 'F#2', frequency: 92.50, key: KEYS.oct1[6], isBlack: true },
+  { name: 'G2', frequency: 98.00, key: KEYS.oct1[7] },
+  { name: 'G#2', frequency: 103.83, key: KEYS.oct1[8], isBlack: true },
+  { name: 'A2', frequency: 110.00, key: KEYS.oct1[9] },
+  { name: 'A#2', frequency: 116.54, key: KEYS.oct1[10], isBlack: true },
+  { name: 'B2', frequency: 123.47, key: KEYS.oct1[11] },
+  // C3 octave
+  { name: 'C3', frequency: 130.81, key: KEYS.oct2[0] },
+  { name: 'C#3', frequency: 138.59, key: KEYS.oct2[1], isBlack: true },
+  { name: 'D3', frequency: 146.83, key: KEYS.oct2[2] },
+  { name: 'D#3', frequency: 155.56, key: KEYS.oct2[3], isBlack: true },
+  { name: 'E3', frequency: 164.81, key: KEYS.oct2[4] },
+  { name: 'F3', frequency: 174.61, key: KEYS.oct2[5] },
+  { name: 'F#3', frequency: 185.00, key: KEYS.oct2[6], isBlack: true },
+  { name: 'G3', frequency: 196.00, key: KEYS.oct2[7] },
+  { name: 'G#3', frequency: 207.65, key: KEYS.oct2[8], isBlack: true },
+  { name: 'A3', frequency: 220.00, key: KEYS.oct2[9] },
+  { name: 'A#3', frequency: 233.08, key: KEYS.oct2[10], isBlack: true },
+  { name: 'B3', frequency: 246.94, key: KEYS.oct2[11] },
+  // C4 octave
+  ...C4_OCTAVE_BASS,
+  // C5
+  { name: 'C5', frequency: 523.25, key: KEYS.final },
+]
+
 interface KeyboardProps {
-  onNotePlay: (notes: string[], clef: 'treble' | 'bass') => void
+  onNotePlay: (notes: string[], clef: 'treble' | 'bass', duration: NoteDuration) => void
   activeNotes?: Set<string>
-  currentDuration: NoteDuration
-  onDurationChange: (duration: NoteDuration) => void
   showTrebleClef?: boolean
   showBassClef?: boolean
 }
@@ -28,8 +133,6 @@ interface KeyboardProps {
 const Keyboard = ({
   onNotePlay,
   activeNotes = new Set(),
-  currentDuration,
-  onDurationChange,
   showTrebleClef = true,
   showBassClef = true,
 }: KeyboardProps) => {
@@ -41,9 +144,17 @@ const Keyboard = ({
 
   // Chord detection state
   const [_pressedKeys, setPressedKeys] = useState<Set<string>>(new Set())
-  const [_pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass' }>>([])
+  const [_pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass'; duration: NoteDuration }>>([])
   const chordTimerRef = useRef<number | null>(null)
   const CHORD_WINDOW_MS = 150
+
+  // Hold duration tracking state
+  const keyHoldTimersRef = useRef<Map<string, number>>(new Map())
+  const keyHoldStartTimesRef = useRef<Map<string, number>>(new Map())
+  const [keyHoldDurations, setKeyHoldDurations] = useState<Map<string, NoteDuration>>(new Map())
+
+  // Active oscillators for sustained playback
+  const activeOscillatorsRef = useRef<Map<string, { oscillator: OscillatorNode; gainNode: GainNode }>>(new Map())
 
   // Auto-switch to visible clef if current one is hidden
   useEffect(() => {
@@ -76,14 +187,35 @@ const Keyboard = ({
 
   // Cleanup on unmount
   useEffect(() => {
+    // Capture refs at mount time for cleanup
+    const audioContext = audioContextRef.current
+    const chordTimer = chordTimerRef
+    const holdTimers = keyHoldTimersRef
+    const activeOscillators = activeOscillatorsRef
+
     return () => {
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
+      if (audioContext) {
+        audioContext.close()
       }
       // Clear chord timer on unmount
-      if (chordTimerRef.current !== null) {
-        clearTimeout(chordTimerRef.current)
+      if (chordTimer.current !== null) {
+        clearTimeout(chordTimer.current)
       }
+      // Clear all hold duration timers
+      holdTimers.current.forEach((timerId) => {
+        clearInterval(timerId)
+      })
+      holdTimers.current.clear()
+
+      // Stop all active oscillators
+      activeOscillators.current.forEach(({ oscillator }) => {
+        try {
+          oscillator.stop()
+        } catch {
+          // Ignore if already stopped
+        }
+      })
+      activeOscillators.current.clear()
     }
   }, [])
 
@@ -100,8 +232,16 @@ const Keyboard = ({
       // All notes in a chord should use the same clef (the one selected when first key was pressed)
       const clef = currentPending[0].clef
 
-      // Call parent handler with array of notes
-      onNotePlayRef.current(noteNames, clef)
+      // For chords, use the shortest duration (most conservative)
+      // This ensures the chord ends when the first key is released
+      const finalDuration = currentPending.reduce((shortest, current) => {
+        return getDurationInBeats(current.duration) < getDurationInBeats(shortest)
+          ? current.duration
+          : shortest
+      }, currentPending[0].duration)
+
+      // Call parent handler with array of notes and calculated duration
+      onNotePlayRef.current(noteNames, clef, finalDuration)
 
       // Clear the buffer by returning empty array
       return []
@@ -150,100 +290,22 @@ const Keyboard = ({
     }
   }, [])
 
-  // Note frequencies for treble clef (C4 to C7 - 3 octaves)
-  const trebleNotes: Note[] = useMemo(() => [
-    // First octave (C4 to B4)
-    { name: 'C4', frequency: 261.63, key: 'a' },
-    { name: 'C#4', frequency: 277.18, key: 'w', isBlack: true },
-    { name: 'D4', frequency: 293.66, key: 's' },
-    { name: 'D#4', frequency: 311.13, key: 'e', isBlack: true },
-    { name: 'E4', frequency: 329.63, key: 'd' },
-    { name: 'F4', frequency: 349.23, key: 'f' },
-    { name: 'F#4', frequency: 369.99, key: 't', isBlack: true },
-    { name: 'G4', frequency: 392.00, key: 'g' },
-    { name: 'G#4', frequency: 415.30, key: 'y', isBlack: true },
-    { name: 'A4', frequency: 440.00, key: 'h' },
-    { name: 'A#4', frequency: 466.16, key: 'u', isBlack: true },
-    { name: 'B4', frequency: 493.88, key: 'j' },
-    // Second octave (C5 to B5)
-    { name: 'C5', frequency: 523.25, key: 'k' },
-    { name: 'C#5', frequency: 554.37, key: 'o', isBlack: true },
-    { name: 'D5', frequency: 587.33, key: 'l' },
-    { name: 'D#5', frequency: 622.25, key: 'p', isBlack: true },
-    { name: 'E5', frequency: 659.25, key: ';' },
-    { name: 'F5', frequency: 698.46, key: 'z' },
-    { name: 'F#5', frequency: 739.99, key: 'x', isBlack: true },
-    { name: 'G5', frequency: 783.99, key: 'c' },
-    { name: 'G#5', frequency: 830.61, key: 'v', isBlack: true },
-    { name: 'A5', frequency: 880.00, key: 'b' },
-    { name: 'A#5', frequency: 932.33, key: 'n', isBlack: true },
-    { name: 'B5', frequency: 987.77, key: 'm' },
-    // Third octave (C6 to C7)
-    { name: 'C6', frequency: 1046.50, key: ',' },
-    { name: 'C#6', frequency: 1108.73, key: '1', isBlack: true },
-    { name: 'D6', frequency: 1174.66, key: '.' },
-    { name: 'D#6', frequency: 1244.51, key: '2', isBlack: true },
-    { name: 'E6', frequency: 1318.51, key: '/' },
-    { name: 'F6', frequency: 1396.91, key: 'q' },
-    { name: 'F#6', frequency: 1479.98, key: '3', isBlack: true },
-    { name: 'G6', frequency: 1567.98, key: 'r' },
-    { name: 'G#6', frequency: 1661.22, key: '4', isBlack: true },
-    { name: 'A6', frequency: 1760.00, key: 'i' },
-    { name: 'A#6', frequency: 1864.66, key: '5', isBlack: true },
-    { name: 'B6', frequency: 1975.53, key: '[' },
-    { name: 'C7', frequency: 2093.00, key: ']' },
-  ], [])
-
-  // Note frequencies for bass clef (C2 to C5 - 3 octaves)
-  const bassNotes: Note[] = useMemo(() => [
-    // First octave (C2 to B2)
-    { name: 'C2', frequency: 65.41, key: 'a' },
-    { name: 'C#2', frequency: 69.30, key: 'w', isBlack: true },
-    { name: 'D2', frequency: 73.42, key: 's' },
-    { name: 'D#2', frequency: 77.78, key: 'e', isBlack: true },
-    { name: 'E2', frequency: 82.41, key: 'd' },
-    { name: 'F2', frequency: 87.31, key: 'f' },
-    { name: 'F#2', frequency: 92.50, key: 't', isBlack: true },
-    { name: 'G2', frequency: 98.00, key: 'g' },
-    { name: 'G#2', frequency: 103.83, key: 'y', isBlack: true },
-    { name: 'A2', frequency: 110.00, key: 'h' },
-    { name: 'A#2', frequency: 116.54, key: 'u', isBlack: true },
-    { name: 'B2', frequency: 123.47, key: 'j' },
-    // Second octave (C3 to B3)
-    { name: 'C3', frequency: 130.81, key: 'k' },
-    { name: 'C#3', frequency: 138.59, key: 'o', isBlack: true },
-    { name: 'D3', frequency: 146.83, key: 'l' },
-    { name: 'D#3', frequency: 155.56, key: 'p', isBlack: true },
-    { name: 'E3', frequency: 164.81, key: ';' },
-    { name: 'F3', frequency: 174.61, key: 'z' },
-    { name: 'F#3', frequency: 185.00, key: 'x', isBlack: true },
-    { name: 'G3', frequency: 196.00, key: 'c' },
-    { name: 'G#3', frequency: 207.65, key: 'v', isBlack: true },
-    { name: 'A3', frequency: 220.00, key: 'b' },
-    { name: 'A#3', frequency: 233.08, key: 'n', isBlack: true },
-    { name: 'B3', frequency: 246.94, key: 'm' },
-    // Third octave (C4 to C5)
-    { name: 'C4', frequency: 261.63, key: ',' },
-    { name: 'C#4', frequency: 277.18, key: '1', isBlack: true },
-    { name: 'D4', frequency: 293.66, key: '.' },
-    { name: 'D#4', frequency: 311.13, key: '2', isBlack: true },
-    { name: 'E4', frequency: 329.63, key: '/' },
-    { name: 'F4', frequency: 349.23, key: 'q' },
-    { name: 'F#4', frequency: 369.99, key: '3', isBlack: true },
-    { name: 'G4', frequency: 392.00, key: 'r' },
-    { name: 'G#4', frequency: 415.30, key: '4', isBlack: true },
-    { name: 'A4', frequency: 440.00, key: 'i' },
-    { name: 'A#4', frequency: 466.16, key: '5', isBlack: true },
-    { name: 'B4', frequency: 493.88, key: '[' },
-    { name: 'C5', frequency: 523.25, key: ']' },
-  ], [])
-
   // Select notes based on selected clef
-  const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
+  const notes = selectedClef === 'treble' ? TREBLE_NOTES : BASS_NOTES
 
-  const playNote = useCallback((frequency: number, noteName: string) => {
+  const playNote = useCallback((frequency: number, key: string) => {
     const audioContext = getAudioContext()
     if (!audioContext) return
+
+    // Stop any existing oscillator for this key
+    const existing = activeOscillatorsRef.current.get(key)
+    if (existing) {
+      try {
+        existing.oscillator.stop()
+      } catch {
+        // Ignore if already stopped
+      }
+    }
 
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
@@ -255,27 +317,33 @@ const Keyboard = ({
     oscillator.type = 'sine'
 
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
 
     oscillator.start(audioContext.currentTime)
-    oscillator.stop(audioContext.currentTime + 0.5)
 
-    // Add note to pending buffer
-    setPendingNotes(prev => {
-      const newPending = [...prev, { name: noteName, frequency, clef: selectedClef }]
+    // Store the oscillator so we can stop it on key release
+    activeOscillatorsRef.current.set(key, { oscillator, gainNode })
+  }, [getAudioContext]);
 
-      // Only start timer if this is the first note in the buffer
-      if (prev.length === 0) {
-        // Start the chord detection window
-        chordTimerRef.current = window.setTimeout(() => {
-          commitPendingNotes()
-        }, CHORD_WINDOW_MS)
-      }
-      // Otherwise, just add to the buffer (don't restart timer)
+  const stopNote = useCallback((key: string) => {
+    const active = activeOscillatorsRef.current.get(key)
+    if (!active) return
 
-      return newPending
-    })
-  }, [selectedClef, getAudioContext, CHORD_WINDOW_MS, commitPendingNotes]);
+    const { oscillator, gainNode } = active
+    const audioContext = getAudioContext()
+    if (!audioContext) return
+
+    // Fade out quickly
+    try {
+      gainNode.gain.cancelScheduledValues(audioContext.currentTime)
+      gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05)
+      oscillator.stop(audioContext.currentTime + 0.05)
+    } catch {
+      // Ignore if already stopped
+    }
+
+    activeOscillatorsRef.current.delete(key)
+  }, [getAudioContext]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -289,22 +357,97 @@ const Keyboard = ({
       const note = notes.find(n => n.key === key)
 
       if (note && !event.repeat) {
+        const now = Date.now()
+
+        // Track when key was pressed
+        keyHoldStartTimesRef.current.set(key, now)
+
+        // Initialize duration at shortest value
+        setKeyHoldDurations(prev => new Map(prev).set(key, 'sixteenth'))
+
         // Track pressed key
         setPressedKeys(prev => new Set([...prev, key]))
 
-        playNote(note.frequency, note.name)
+        // Play audio immediately (pass key for tracking)
+        playNote(note.frequency, key)
+
+        // Start interval timer to update duration display
+        // Check every 25ms for responsive feedback
+        const timerId = window.setInterval(() => {
+          const startTime = keyHoldStartTimesRef.current.get(key)
+          if (startTime) {
+            const holdTime = Date.now() - startTime
+            const newDuration = getDurationFromHoldTime(holdTime)
+            setKeyHoldDurations(prev => new Map(prev).set(key, newDuration))
+          }
+        }, 25)
+
+        keyHoldTimersRef.current.set(key, timerId)
 
         // Add visual feedback
         const button = document.querySelector(`[data-key="${key}"]`)
         if (button) {
           button.classList.add('active')
-          setTimeout(() => button.classList.remove('active'), 200)
         }
       }
     }
 
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase()
+      const note = notes.find(n => n.key === key)
+
+      if (note) {
+        // Calculate final held duration
+        const startTime = keyHoldStartTimesRef.current.get(key)
+        let finalDuration: NoteDuration = 'quarter' // default fallback
+
+        if (startTime) {
+          const holdTime = Date.now() - startTime
+          finalDuration = getDurationFromHoldTime(holdTime)
+        }
+
+        // Add to pending notes buffer with calculated duration
+        setPendingNotes(prev => {
+          const newPending = [...prev, {
+            name: note.name,
+            frequency: note.frequency,
+            clef: selectedClef,
+            duration: finalDuration
+          }]
+
+          // Only start timer if this is the first note in the buffer
+          if (prev.length === 0) {
+            chordTimerRef.current = window.setTimeout(() => {
+              commitPendingNotes()
+            }, CHORD_WINDOW_MS)
+          }
+
+          return newPending
+        })
+
+        // Clean up timers and state for this key
+        const timerId = keyHoldTimersRef.current.get(key)
+        if (timerId) {
+          clearInterval(timerId)
+          keyHoldTimersRef.current.delete(key)
+        }
+
+        keyHoldStartTimesRef.current.delete(key)
+        setKeyHoldDurations(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(key)
+          return newMap
+        })
+
+        // Stop the audio for this key
+        stopNote(key)
+
+        // Remove visual feedback
+        const button = document.querySelector(`[data-key="${key}"]`)
+        if (button) {
+          button.classList.remove('active')
+        }
+      }
 
       // Remove key from pressed keys
       setPressedKeys(prev => {
@@ -329,7 +472,7 @@ const Keyboard = ({
       window.removeEventListener('keydown', handleKeyPress)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [notes, selectedClef, playNote, commitPendingNotes])
+  }, [notes, selectedClef, playNote, stopNote, commitPendingNotes])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
@@ -362,6 +505,96 @@ const Keyboard = ({
     return keyboardPadding + (whiteKeyIndex + 1) * whiteKeyWidth + whiteKeyIndex * gap - (blackKeyWidth / 2)
   }
 
+  const handleMouseDown = useCallback((note: Note) => {
+    const now = Date.now()
+
+    // Track when mouse was pressed
+    keyHoldStartTimesRef.current.set(note.name, now)
+
+    // Initialize duration at shortest value
+    setKeyHoldDurations(prev => new Map(prev).set(note.name, 'sixteenth'))
+
+    // Track pressed key
+    setPressedKeys(prev => new Set([...prev, note.name]))
+
+    // Play audio immediately
+    playNote(note.frequency, note.name)
+
+    // Start interval timer to update duration display
+    const timerId = window.setInterval(() => {
+      const startTime = keyHoldStartTimesRef.current.get(note.name)
+      if (startTime) {
+        const holdTime = Date.now() - startTime
+        const newDuration = getDurationFromHoldTime(holdTime)
+        setKeyHoldDurations(prev => new Map(prev).set(note.name, newDuration))
+      }
+    }, 25)
+
+    keyHoldTimersRef.current.set(note.name, timerId)
+  }, [playNote])
+
+  const handleMouseUp = useCallback((note: Note) => {
+    // Calculate final held duration
+    const startTime = keyHoldStartTimesRef.current.get(note.name)
+    let finalDuration: NoteDuration = 'quarter' // default fallback
+
+    if (startTime) {
+      const holdTime = Date.now() - startTime
+      finalDuration = getDurationFromHoldTime(holdTime)
+    }
+
+    // Add to pending notes buffer with calculated duration
+    setPendingNotes(prev => {
+      const newPending = [...prev, {
+        name: note.name,
+        frequency: note.frequency,
+        clef: selectedClef,
+        duration: finalDuration
+      }]
+
+      // Only start timer if this is the first note in the buffer
+      if (prev.length === 0) {
+        chordTimerRef.current = window.setTimeout(() => {
+          commitPendingNotes()
+        }, CHORD_WINDOW_MS)
+      }
+
+      return newPending
+    })
+
+    // Clean up timers and state for this key
+    const timerId = keyHoldTimersRef.current.get(note.name)
+    if (timerId) {
+      clearInterval(timerId)
+      keyHoldTimersRef.current.delete(note.name)
+    }
+
+    keyHoldStartTimesRef.current.delete(note.name)
+    setKeyHoldDurations(prev => {
+      const newMap = new Map(prev)
+      newMap.delete(note.name)
+      return newMap
+    })
+
+    // Stop the audio
+    stopNote(note.name)
+
+    // Remove key from pressed keys
+    setPressedKeys(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(note.name)
+
+      // If all keys are released, commit immediately
+      if (newSet.size === 0) {
+        setTimeout(() => {
+          commitPendingNotes()
+        }, 0)
+      }
+
+      return newSet
+    })
+  }, [selectedClef, stopNote, commitPendingNotes])
+
   return (
     <div className="keyboard-container">
       <div className="keyboard-header">
@@ -381,23 +614,11 @@ const Keyboard = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="duration-control">
-            <Select
-              value={currentDuration}
-              onValueChange={(value) => onDurationChange(value as NoteDuration)}
-            >
-              <SelectTrigger id="keyboard-duration" className="w-[130px] text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="whole">Whole</SelectItem>
-                <SelectItem value="half">Half</SelectItem>
-                <SelectItem value="quarter">Quarter</SelectItem>
-                <SelectItem value="eighth">Eighth</SelectItem>
-                <SelectItem value="sixteenth">Sixteenth</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {keyHoldDurations.size > 0 && (
+            <div className="duration-indicator">
+              Hold Duration: <strong>{Array.from(keyHoldDurations.values())[0]}</strong>
+            </div>
+          )}
         </div>
       </div>
       <div className="keyboard" ref={keyboardRef}>
@@ -407,7 +628,14 @@ const Keyboard = ({
             key={note.name}
             data-key={note.key}
             className={`piano-key white ${activeNotes.has(note.name) ? 'active' : ''}`}
-            onClick={() => playNote(note.frequency, note.name)}
+            onMouseDown={() => handleMouseDown(note)}
+            onMouseUp={() => handleMouseUp(note)}
+            onMouseLeave={() => {
+              // Stop the note if mouse leaves while pressed
+              if (keyHoldStartTimesRef.current.has(note.name)) {
+                handleMouseUp(note)
+              }
+            }}
           >
             <span className="note-name">{note.name}</span>
             <span className="key-label">{note.key.toUpperCase()}</span>
@@ -420,7 +648,14 @@ const Keyboard = ({
             data-key={note.key}
             className={`piano-key black ${activeNotes.has(note.name) ? 'active' : ''}`}
             style={{ left: `${getBlackKeyPosition(note.name)}px` }}
-            onClick={() => playNote(note.frequency, note.name)}
+            onMouseDown={() => handleMouseDown(note)}
+            onMouseUp={() => handleMouseUp(note)}
+            onMouseLeave={() => {
+              // Stop the note if mouse leaves while pressed
+              if (keyHoldStartTimesRef.current.has(note.name)) {
+                handleMouseUp(note)
+              }
+            }}
           >
             <span className="note-name">{note.name}</span>
             <span className="key-label">{note.key.toUpperCase()}</span>
