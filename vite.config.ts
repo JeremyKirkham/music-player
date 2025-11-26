@@ -10,4 +10,8 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    target: 'es2015', // Support older browsers including iOS Safari 10+
+    cssTarget: 'safari10.1',
+  },
 })
