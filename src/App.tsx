@@ -33,7 +33,6 @@ function App() {
     createEmptyScore({ numerator: 4, denominator: 4 }, 120)
   ])
   const [historyIndex, setHistoryIndex] = useState<number>(0)
-  const [currentDuration, setCurrentDuration] = useState<NoteDuration>('quarter')
   const [tempoState, setTempoState] = useState<number>(120) // BPM
   const tempo = tempoState
 
@@ -436,7 +435,7 @@ function App() {
   }, [togglePlayback, musicScore, historyIndex, history, undo, redo, updateScoreWithHistory])
 
   // Handle note play from keyboard
-  const handleNotePlay = (noteNames: string[], clef: 'treble' | 'bass') => {
+  const handleNotePlay = (noteNames: string[], clef: 'treble' | 'bass', duration: NoteDuration) => {
     const position = getCurrentPosition(musicScore, musicScore.timeSignature)
 
     // Parse all note names into Note objects
@@ -448,7 +447,7 @@ function App() {
     const event: MusicalEvent = {
       id: generateId(),
       type: 'note',
-      duration: currentDuration,
+      duration: duration,
       notes: notes, // Array of notes (chord if length > 1)
       position,
     }
@@ -684,8 +683,6 @@ function App() {
       <Keyboard
         onNotePlay={handleNotePlay}
         activeNotes={activeNotes}
-        currentDuration={currentDuration}
-        onDurationChange={setCurrentDuration}
         showTrebleClef={showTrebleClef}
         showBassClef={showBassClef}
       />

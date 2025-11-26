@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './Keyboard.css'
 import type { NoteDuration } from '../types/music'
+import { getDurationInBeats } from '../utils/playbackUtilities'
 import {
   Select,
   SelectContent,
@@ -8,6 +9,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
+
+// Duration progression based on hold time
+const getDurationFromHoldTime = (holdTimeMs: number): NoteDuration => {
+  if (holdTimeMs < 50) return 'sixteenth'      // 0-49ms
+  if (holdTimeMs < 150) return 'eighth'        // 50-149ms
+  if (holdTimeMs < 300) return 'quarter'       // 150-299ms
+  if (holdTimeMs < 700) return 'half'          // 300-699ms
+  return 'whole'                               // 700ms+
+}
 
 interface Note {
   name: string
@@ -17,10 +27,8 @@ interface Note {
 }
 
 interface KeyboardProps {
-  onNotePlay: (notes: string[], clef: 'treble' | 'bass') => void
+  onNotePlay: (notes: string[], clef: 'treble' | 'bass', duration: NoteDuration) => void
   activeNotes?: Set<string>
-  currentDuration: NoteDuration
-  onDurationChange: (duration: NoteDuration) => void
   showTrebleClef?: boolean
   showBassClef?: boolean
 }
@@ -28,8 +36,6 @@ interface KeyboardProps {
 const Keyboard = ({
   onNotePlay,
   activeNotes = new Set(),
-  currentDuration,
-  onDurationChange,
   showTrebleClef = true,
   showBassClef = true,
 }: KeyboardProps) => {
@@ -41,9 +47,17 @@ const Keyboard = ({
 
   // Chord detection state
   const [_pressedKeys, setPressedKeys] = useState<Set<string>>(new Set())
-  const [_pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass' }>>([])
+  const [_pendingNotes, setPendingNotes] = useState<Array<{ name: string; frequency: number; clef: 'treble' | 'bass'; duration: NoteDuration }>>([])
   const chordTimerRef = useRef<number | null>(null)
   const CHORD_WINDOW_MS = 150
+
+  // Hold duration tracking state
+  const keyHoldTimersRef = useRef<Map<string, number>>(new Map())
+  const keyHoldStartTimesRef = useRef<Map<string, number>>(new Map())
+  const [keyHoldDurations, setKeyHoldDurations] = useState<Map<string, NoteDuration>>(new Map())
+
+  // Active oscillators for sustained playback
+  const activeOscillatorsRef = useRef<Map<string, { oscillator: OscillatorNode; gainNode: GainNode }>>(new Map())
 
   // Auto-switch to visible clef if current one is hidden
   useEffect(() => {
@@ -84,6 +98,21 @@ const Keyboard = ({
       if (chordTimerRef.current !== null) {
         clearTimeout(chordTimerRef.current)
       }
+      // Clear all hold duration timers
+      keyHoldTimersRef.current.forEach((timerId) => {
+        clearInterval(timerId)
+      })
+      keyHoldTimersRef.current.clear()
+
+      // Stop all active oscillators
+      activeOscillatorsRef.current.forEach(({ oscillator }) => {
+        try {
+          oscillator.stop()
+        } catch (e) {
+          // Ignore if already stopped
+        }
+      })
+      activeOscillatorsRef.current.clear()
     }
   }, [])
 
@@ -100,8 +129,16 @@ const Keyboard = ({
       // All notes in a chord should use the same clef (the one selected when first key was pressed)
       const clef = currentPending[0].clef
 
-      // Call parent handler with array of notes
-      onNotePlayRef.current(noteNames, clef)
+      // For chords, use the shortest duration (most conservative)
+      // This ensures the chord ends when the first key is released
+      const finalDuration = currentPending.reduce((shortest, current) => {
+        return getDurationInBeats(current.duration) < getDurationInBeats(shortest)
+          ? current.duration
+          : shortest
+      }, currentPending[0].duration)
+
+      // Call parent handler with array of notes and calculated duration
+      onNotePlayRef.current(noteNames, clef, finalDuration)
 
       // Clear the buffer by returning empty array
       return []
@@ -241,9 +278,19 @@ const Keyboard = ({
   // Select notes based on selected clef
   const notes = selectedClef === 'treble' ? trebleNotes : bassNotes
 
-  const playNote = useCallback((frequency: number, noteName: string) => {
+  const playNote = useCallback((frequency: number, key: string) => {
     const audioContext = getAudioContext()
     if (!audioContext) return
+
+    // Stop any existing oscillator for this key
+    const existing = activeOscillatorsRef.current.get(key)
+    if (existing) {
+      try {
+        existing.oscillator.stop()
+      } catch (e) {
+        // Ignore if already stopped
+      }
+    }
 
     const oscillator = audioContext.createOscillator()
     const gainNode = audioContext.createGain()
@@ -255,27 +302,33 @@ const Keyboard = ({
     oscillator.type = 'sine'
 
     gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
 
     oscillator.start(audioContext.currentTime)
-    oscillator.stop(audioContext.currentTime + 0.5)
 
-    // Add note to pending buffer
-    setPendingNotes(prev => {
-      const newPending = [...prev, { name: noteName, frequency, clef: selectedClef }]
+    // Store the oscillator so we can stop it on key release
+    activeOscillatorsRef.current.set(key, { oscillator, gainNode })
+  }, [getAudioContext]);
 
-      // Only start timer if this is the first note in the buffer
-      if (prev.length === 0) {
-        // Start the chord detection window
-        chordTimerRef.current = window.setTimeout(() => {
-          commitPendingNotes()
-        }, CHORD_WINDOW_MS)
-      }
-      // Otherwise, just add to the buffer (don't restart timer)
+  const stopNote = useCallback((key: string) => {
+    const active = activeOscillatorsRef.current.get(key)
+    if (!active) return
 
-      return newPending
-    })
-  }, [selectedClef, getAudioContext, CHORD_WINDOW_MS, commitPendingNotes]);
+    const { oscillator, gainNode } = active
+    const audioContext = getAudioContext()
+    if (!audioContext) return
+
+    // Fade out quickly
+    try {
+      gainNode.gain.cancelScheduledValues(audioContext.currentTime)
+      gainNode.gain.setValueAtTime(gainNode.gain.value, audioContext.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05)
+      oscillator.stop(audioContext.currentTime + 0.05)
+    } catch (e) {
+      // Ignore if already stopped
+    }
+
+    activeOscillatorsRef.current.delete(key)
+  }, [getAudioContext]);
 
   // Handle keyboard events
   useEffect(() => {
@@ -289,22 +342,97 @@ const Keyboard = ({
       const note = notes.find(n => n.key === key)
 
       if (note && !event.repeat) {
+        const now = Date.now()
+
+        // Track when key was pressed
+        keyHoldStartTimesRef.current.set(key, now)
+
+        // Initialize duration at shortest value
+        setKeyHoldDurations(prev => new Map(prev).set(key, 'sixteenth'))
+
         // Track pressed key
         setPressedKeys(prev => new Set([...prev, key]))
 
-        playNote(note.frequency, note.name)
+        // Play audio immediately (pass key for tracking)
+        playNote(note.frequency, key)
+
+        // Start interval timer to update duration display
+        // Check every 25ms for responsive feedback
+        const timerId = window.setInterval(() => {
+          const startTime = keyHoldStartTimesRef.current.get(key)
+          if (startTime) {
+            const holdTime = Date.now() - startTime
+            const newDuration = getDurationFromHoldTime(holdTime)
+            setKeyHoldDurations(prev => new Map(prev).set(key, newDuration))
+          }
+        }, 25)
+
+        keyHoldTimersRef.current.set(key, timerId)
 
         // Add visual feedback
         const button = document.querySelector(`[data-key="${key}"]`)
         if (button) {
           button.classList.add('active')
-          setTimeout(() => button.classList.remove('active'), 200)
         }
       }
     }
 
     const handleKeyUp = (event: KeyboardEvent) => {
       const key = event.key.toLowerCase()
+      const note = notes.find(n => n.key === key)
+
+      if (note) {
+        // Calculate final held duration
+        const startTime = keyHoldStartTimesRef.current.get(key)
+        let finalDuration: NoteDuration = 'quarter' // default fallback
+
+        if (startTime) {
+          const holdTime = Date.now() - startTime
+          finalDuration = getDurationFromHoldTime(holdTime)
+        }
+
+        // Add to pending notes buffer with calculated duration
+        setPendingNotes(prev => {
+          const newPending = [...prev, {
+            name: note.name,
+            frequency: note.frequency,
+            clef: selectedClef,
+            duration: finalDuration
+          }]
+
+          // Only start timer if this is the first note in the buffer
+          if (prev.length === 0) {
+            chordTimerRef.current = window.setTimeout(() => {
+              commitPendingNotes()
+            }, CHORD_WINDOW_MS)
+          }
+
+          return newPending
+        })
+
+        // Clean up timers and state for this key
+        const timerId = keyHoldTimersRef.current.get(key)
+        if (timerId) {
+          clearInterval(timerId)
+          keyHoldTimersRef.current.delete(key)
+        }
+
+        keyHoldStartTimesRef.current.delete(key)
+        setKeyHoldDurations(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(key)
+          return newMap
+        })
+
+        // Stop the audio for this key
+        stopNote(key)
+
+        // Remove visual feedback
+        const button = document.querySelector(`[data-key="${key}"]`)
+        if (button) {
+          button.classList.remove('active')
+        }
+      }
 
       // Remove key from pressed keys
       setPressedKeys(prev => {
@@ -329,7 +457,7 @@ const Keyboard = ({
       window.removeEventListener('keydown', handleKeyPress)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [notes, selectedClef, playNote, commitPendingNotes])
+  }, [notes, selectedClef, playNote, stopNote, commitPendingNotes])
 
   const whiteNotes = notes.filter(note => !note.isBlack)
   const blackNotes = notes.filter(note => note.isBlack)
@@ -381,23 +509,11 @@ const Keyboard = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="duration-control">
-            <Select
-              value={currentDuration}
-              onValueChange={(value) => onDurationChange(value as NoteDuration)}
-            >
-              <SelectTrigger id="keyboard-duration" className="w-[130px] text-foreground">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="whole">Whole</SelectItem>
-                <SelectItem value="half">Half</SelectItem>
-                <SelectItem value="quarter">Quarter</SelectItem>
-                <SelectItem value="eighth">Eighth</SelectItem>
-                <SelectItem value="sixteenth">Sixteenth</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {keyHoldDurations.size > 0 && (
+            <div className="duration-indicator">
+              Hold Duration: <strong>{Array.from(keyHoldDurations.values())[0]}</strong>
+            </div>
+          )}
         </div>
       </div>
       <div className="keyboard" ref={keyboardRef}>
