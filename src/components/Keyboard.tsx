@@ -505,6 +505,96 @@ const Keyboard = ({
     return keyboardPadding + (whiteKeyIndex + 1) * whiteKeyWidth + whiteKeyIndex * gap - (blackKeyWidth / 2)
   }
 
+  const handleMouseDown = useCallback((note: Note) => {
+    const now = Date.now()
+
+    // Track when mouse was pressed
+    keyHoldStartTimesRef.current.set(note.name, now)
+
+    // Initialize duration at shortest value
+    setKeyHoldDurations(prev => new Map(prev).set(note.name, 'sixteenth'))
+
+    // Track pressed key
+    setPressedKeys(prev => new Set([...prev, note.name]))
+
+    // Play audio immediately
+    playNote(note.frequency, note.name)
+
+    // Start interval timer to update duration display
+    const timerId = window.setInterval(() => {
+      const startTime = keyHoldStartTimesRef.current.get(note.name)
+      if (startTime) {
+        const holdTime = Date.now() - startTime
+        const newDuration = getDurationFromHoldTime(holdTime)
+        setKeyHoldDurations(prev => new Map(prev).set(note.name, newDuration))
+      }
+    }, 25)
+
+    keyHoldTimersRef.current.set(note.name, timerId)
+  }, [playNote])
+
+  const handleMouseUp = useCallback((note: Note) => {
+    // Calculate final held duration
+    const startTime = keyHoldStartTimesRef.current.get(note.name)
+    let finalDuration: NoteDuration = 'quarter' // default fallback
+
+    if (startTime) {
+      const holdTime = Date.now() - startTime
+      finalDuration = getDurationFromHoldTime(holdTime)
+    }
+
+    // Add to pending notes buffer with calculated duration
+    setPendingNotes(prev => {
+      const newPending = [...prev, {
+        name: note.name,
+        frequency: note.frequency,
+        clef: selectedClef,
+        duration: finalDuration
+      }]
+
+      // Only start timer if this is the first note in the buffer
+      if (prev.length === 0) {
+        chordTimerRef.current = window.setTimeout(() => {
+          commitPendingNotes()
+        }, CHORD_WINDOW_MS)
+      }
+
+      return newPending
+    })
+
+    // Clean up timers and state for this key
+    const timerId = keyHoldTimersRef.current.get(note.name)
+    if (timerId) {
+      clearInterval(timerId)
+      keyHoldTimersRef.current.delete(note.name)
+    }
+
+    keyHoldStartTimesRef.current.delete(note.name)
+    setKeyHoldDurations(prev => {
+      const newMap = new Map(prev)
+      newMap.delete(note.name)
+      return newMap
+    })
+
+    // Stop the audio
+    stopNote(note.name)
+
+    // Remove key from pressed keys
+    setPressedKeys(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(note.name)
+
+      // If all keys are released, commit immediately
+      if (newSet.size === 0) {
+        setTimeout(() => {
+          commitPendingNotes()
+        }, 0)
+      }
+
+      return newSet
+    })
+  }, [selectedClef, stopNote, commitPendingNotes])
+
   return (
     <div className="keyboard-container">
       <div className="keyboard-header">
@@ -538,7 +628,14 @@ const Keyboard = ({
             key={note.name}
             data-key={note.key}
             className={`piano-key white ${activeNotes.has(note.name) ? 'active' : ''}`}
-            onClick={() => playNote(note.frequency, note.name)}
+            onMouseDown={() => handleMouseDown(note)}
+            onMouseUp={() => handleMouseUp(note)}
+            onMouseLeave={() => {
+              // Stop the note if mouse leaves while pressed
+              if (keyHoldStartTimesRef.current.has(note.name)) {
+                handleMouseUp(note)
+              }
+            }}
           >
             <span className="note-name">{note.name}</span>
             <span className="key-label">{note.key.toUpperCase()}</span>
@@ -551,7 +648,14 @@ const Keyboard = ({
             data-key={note.key}
             className={`piano-key black ${activeNotes.has(note.name) ? 'active' : ''}`}
             style={{ left: `${getBlackKeyPosition(note.name)}px` }}
-            onClick={() => playNote(note.frequency, note.name)}
+            onMouseDown={() => handleMouseDown(note)}
+            onMouseUp={() => handleMouseUp(note)}
+            onMouseLeave={() => {
+              // Stop the note if mouse leaves while pressed
+              if (keyHoldStartTimesRef.current.has(note.name)) {
+                handleMouseUp(note)
+              }
+            }}
           >
             <span className="note-name">{note.name}</span>
             <span className="key-label">{note.key.toUpperCase()}</span>
